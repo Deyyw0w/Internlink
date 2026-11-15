@@ -1,5 +1,5 @@
 [build]
-  command = "bash scripts/generate-env.sh && npm run build"
+  command = "bash scripts/generate-env.sh && npm run build && cp dist/InternLink/browser/index.csr.html dist/InternLink/browser/index.html"
   publish = "dist/InternLink/browser"
 
 [[redirects]]
