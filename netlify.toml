@@ -1,0 +1,12 @@
+[build]
+  command = "bash scripts/generate-env.sh && npm run build"
+  publish = "dist/InternLink/browser"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = true
+
+[[plugins]]
+package = "@netlify/angular-runtime"

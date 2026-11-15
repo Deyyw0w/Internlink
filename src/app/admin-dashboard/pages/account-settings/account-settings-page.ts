@@ -212,7 +212,7 @@ export class AdminAccountSettingsPageComponent implements OnInit {
           this.isSavingPassword.set(false);
           this.passwordSubmitError.set('Current password is incorrect. Please try again.');
           this.passwordErrors.set({ current_password: 'Current password is incorrect.' });
-          return;
+          throw new Error('Current password verification failed');
         }
 
         return supabase.auth.updateUser({ password: new_password });
@@ -237,6 +237,10 @@ export class AdminAccountSettingsPageComponent implements OnInit {
           confirm_password: '',
         });
 
+        this.cdr.markForCheck();
+      })
+      .catch((err) => {
+        this.isSavingPassword.set(false);
         this.cdr.markForCheck();
       });
   }
