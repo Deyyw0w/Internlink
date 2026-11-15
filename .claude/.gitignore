@@ -1,0 +1,8 @@
+# Claude Code local state
+worktrees/
+*.log
+*.jsonl
+
+# Local session/cache
+*.local.json
+*.cache
