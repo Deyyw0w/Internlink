@@ -27,6 +27,7 @@ export interface InternshipApplication {
   position_role: string;
   status: string;
   submitted_at: string;
+  location: string;
 }
 
 export interface StudentRequirement {
@@ -299,6 +300,12 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
         companyMap.set(c.id, c);
       });
 
+      // Build a name -> address map so we can show company location on the application card
+      const companyNameMap = new Map<string, string>();
+      (companiesData || []).forEach((c: any) => {
+        companyNameMap.set(c.name, c.address || '—');
+      });
+
       this.internshipPostings = (postings || []).map((p: any) => {
         const company = companyMap.get(p.company_id) || {};
         const tags = industryToDegreeTags(company.industry || null, this.knownDegrees);
@@ -309,6 +316,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
           location: company.address || '—',
         };
       });
+
+      // Attach company location to the student's application (no company name shown)
+      if (this.internshipApplication) {
+        this.internshipApplication.location = companyNameMap.get(this.internshipApplication.host_company) || '—';
+      }
     } catch (err) {
       console.error('[Dashboard] Error loading dashboard data:', err);
     } finally {
@@ -401,7 +413,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       .slice(0, 3)
       .map((p) => ({
         id: p.id,
-        company: p.company_name,
         title: p.position_title,
         description: p.description || '',
         slots: p.available_slots,
