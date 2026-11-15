@@ -1,0 +1,94 @@
+import { CommonModule } from '@angular/common';
+import { Component, computed, inject, OnDestroy, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { supabase } from '../../../environments/supabase.config';
+import { ProfileService } from '../../auth/profile.service';
+
+@Component({
+  selector: 'app-topbar',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './topbar.component.html',
+})
+export class TopbarComponent implements OnInit, OnDestroy {
+  private readonly router = inject(Router);
+  readonly profileService = inject(ProfileService);
+
+  isProfileMenuOpen = false;
+  private authSubscription: any = null;
+
+  /* Computed signals — react to ProfileService signal changes so the template
+     re-renders when the profile loads or clears (e.g. on sign out). */
+  readonly userName = computed(() => this.profileService.profile()?.full_name ?? null);
+  readonly userEmail = computed(() => this.profileService.profile()?.email ?? null);
+  readonly userId = computed(() => this.profileService.profile()?.student_id ?? null);
+  readonly userInitials = computed(() => {
+    const profile = this.profileService.profile();
+    return profile?.full_name ? this.profileService.computeInitials(profile.full_name) : '';
+  });
+
+  async ngOnInit(): Promise<void> {
+    // Load profile if the dashboard page hasn't already (e.g. refresh on a
+    // non-overview child route).
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user && !this.profileService.profile()) {
+      await this.profileService.loadProfile(session.user.id);
+    }
+
+    // React to auth state changes (sign out from another tab, session expiry, etc.)
+    // NOTE: only clears shared state — navigation is handled by signOut() below,
+    // so two components never fight over redirects.
+    this.authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[Topbar] Auth state changed:', event);
+
+      if (!session?.user) {
+        this.profileService.profile.set(null);
+        this.profileService.loading.set(false);
+        this.closeProfileMenu();
+        return;
+      }
+
+      if (!this.profileService.profile()) {
+        await this.profileService.loadProfile(session.user.id);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (typeof this.authSubscription?.unsubscribe === 'function') {
+      this.authSubscription.unsubscribe();
+    }
+  }
+
+  toggleProfileMenu(): void {
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
+
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
+
+  signOut(): void {
+    this.closeProfileMenu();
+
+    // Clear shared profile state immediately so the UI updates on the first click
+    this.profileService.profile.set(null);
+    this.profileService.loading.set(false);
+
+    // Defer signout + navigation so they run outside Angular's component
+    // destruction cycle (leaving the Dashboard component tree).
+    setTimeout(() => {
+      supabase.auth.signOut().then((result) => {
+        console.log('[Topbar] Supabase signOut result:', result.error ? result.error.message : 'OK');
+      }).catch((err) => {
+        console.error('[Topbar] Supabase signOut exception:', err);
+      });
+
+      this.router.navigate(['/login']).then((success) => {
+        console.log('[Topbar] Router navigate to /login success:', success);
+      }).catch((err) => {
+        console.error('[Topbar] Router navigate to /login failed:', err);
+      });
+    }, 50);
+  }
+}

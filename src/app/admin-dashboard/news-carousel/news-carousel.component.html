@@ -1,0 +1,70 @@
+<section class="mt-8">
+  <div class="mb-4 flex items-center justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.28em] text-slate-400">
+        Latest updates
+      </p>
+      <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">
+        {{ title }}
+      </h2>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="scroll('left')"
+        class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+        aria-label="Scroll news left"
+      >
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m15 6-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        (click)="scroll('right')"
+        class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+        aria-label="Scroll news right"
+      >
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m9 6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div
+    #track
+    class="flex gap-4 overflow-x-auto pb-2 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+  >
+    <article
+      *ngFor="let item of items"
+      class="w-[320px] shrink-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+    >
+      <div class="relative h-44 bg-slate-200">
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-300"></div>
+
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="rounded-full bg-white/70 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">
+            {{ item.imageLabel || 'Image Placeholder' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="p-5">
+        <h3 class="text-base font-extrabold uppercase leading-6 tracking-[0.08em] text-slate-900">
+          {{ item.title }}
+        </h3>
+
+        <p class="mt-3 text-sm leading-6 text-slate-500">
+          {{ item.excerpt }}
+        </p>
+
+        <div class="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+          {{ item.date }}
+        </div>
+      </div>
+    </article>
+  </div>
+</section>

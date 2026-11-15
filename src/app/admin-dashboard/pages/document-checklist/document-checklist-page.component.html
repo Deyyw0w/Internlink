@@ -1,0 +1,337 @@
+<main class="w-full px-8 py-6 space-y-6">
+
+  <!-- Filter Bar -->
+  <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm space-y-5">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div class="flex flex-col gap-1">
+        <h2 class="text-xl font-extrabold tracking-tight">Practicum Document Validation Queue</h2>
+        <p class="text-sm text-slate-300 leading-relaxed max-w-xl">
+          Audit student uploads (Endorsement letters, Notarized Waivers, Medical Clearances) before clearing for deployment.
+        </p>
+      </div>
+
+      <span class="inline-flex items-center rounded-full bg-blue-600/20 px-3 py-1.5 text-xs font-semibold border border-blue-600/30 text-blue-100">
+        Total Records: {{ filteredDocuments().length }}
+      </span>
+    </div>
+
+    <div class="grid gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 items-end">
+      <!-- Search -->
+      <div class="relative min-w-0">
+        <label class="sr-only">Search documents</label>
+        <input
+          type="search"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Search by student name, requirement, or file…"
+          class="w-full bg-white/10 border border-white/15 text-white placeholder-slate-300 rounded-xl pl-3 pr-3 py-2 text-sm focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors"
+        />
+      </div>
+
+      <!-- Status filter -->
+      <div class="relative min-w-0">
+        <label class="sr-only">Document status filter</label>
+        <select
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)"
+          class="w-full bg-white/10 border border-white/15 text-white placeholder-slate-300 rounded-xl pr-10 pl-3 py-2 text-sm appearance-none focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors cursor-pointer"
+        >
+          <option value="" class="text-black">All Document Status</option>
+          <option value="verified" class="text-black">Verified</option>
+          <option value="pending" class="text-black">Pending</option>
+          <option value="rejected" class="text-black">Rejected</option>
+        </select>
+        <svg
+          class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60 pointer-events-none"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- Validation Queue Data Table Card -->
+  <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-slate-50 border-b border-slate-200/80">
+        <tr>
+          <th
+            (click)="setSort('requirementTitle')"
+            class="px-6 py-4 text-xs font-semibold tracking-wider uppercase cursor-pointer select-none hover:bg-slate-100 transition-colors"
+            [ngClass]="{
+              'text-slate-900': sortColumn() === 'requirementTitle',
+              'text-slate-500': sortColumn() !== 'requirementTitle'
+            }"
+          >
+            Requirement Title
+            <span *ngIf="sortColumn() === 'requirementTitle'" class="ml-1 text-slate-400">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th
+            (click)="setSort('studentName')"
+            class="px-6 py-4 text-xs font-semibold tracking-wider uppercase cursor-pointer select-none hover:bg-slate-100 transition-colors"
+            [ngClass]="{
+              'text-slate-900': sortColumn() === 'studentName',
+              'text-slate-500': sortColumn() !== 'studentName'
+            }"
+          >
+            Student Applicant
+            <span *ngIf="sortColumn() === 'studentName'" class="ml-1 text-slate-400">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th
+            (click)="setSort('fileName')"
+            class="px-6 py-4 text-xs font-semibold tracking-wider uppercase cursor-pointer select-none hover:bg-slate-100 transition-colors"
+            [ngClass]="{
+              'text-slate-900': sortColumn() === 'fileName',
+              'text-slate-500': sortColumn() !== 'fileName'
+            }"
+          >
+            Document
+            <span *ngIf="sortColumn() === 'fileName'" class="ml-1 text-slate-400">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th
+            (click)="setSort('uploadedDate')"
+            class="px-6 py-4 text-xs font-semibold tracking-wider uppercase cursor-pointer select-none hover:bg-slate-100 transition-colors"
+            [ngClass]="{
+              'text-slate-900': sortColumn() === 'uploadedDate',
+              'text-slate-500': sortColumn() !== 'uploadedDate'
+            }"
+          >
+            Uploaded Date
+            <span *ngIf="sortColumn() === 'uploadedDate'" class="ml-1 text-slate-400">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Open File</th>
+          <th
+            (click)="setSort('status')"
+            class="px-6 py-4 text-xs font-semibold tracking-wider uppercase cursor-pointer select-none hover:bg-slate-100 transition-colors"
+            [ngClass]="{
+              'text-slate-900': sortColumn() === 'status',
+              'text-slate-500': sortColumn() !== 'status'
+            }"
+          >
+            Status
+            <span *ngIf="sortColumn() === 'status'" class="ml-1 text-slate-400">{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span>
+          </th>
+          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-slate-100 hover:bg-slate-50/70 transition-colors">
+        <tr
+          *ngFor="let item of filteredDocuments(); trackBy: trackByDocument"
+        >
+          <td class="px-6 py-4">
+            <div class="text-slate-900 font-semibold">{{ item.requirementTitle }}</div>
+            <div class="mt-0.5 text-xs text-slate-500">{{ item.requirementType }}</div>
+          </td>
+
+          <td class="px-6 py-4">
+            <div class="text-slate-900 font-semibold">{{ item.studentName }}</div>
+            <div class="mt-0.5 text-xs text-slate-500">{{ item.degreeProgram }}</div>
+          </td>
+
+          <td class="px-6 py-4">
+            <div class="text-sm font-medium text-slate-900 truncate max-w-[160px]" [title]="item.fileName">{{ item.fileName || '—' }}</div>
+          </td>
+
+          <td class="px-6 py-4 text-xs text-slate-500">{{ item.uploadedDate }}</td>
+
+          <td class="px-6 py-4">
+            <button
+              type="button"
+              (click)="openFile(item.fileUrl ?? null, item.fileName ?? null)"
+              [disabled]="!item.fileUrl"
+              class="text-xs font-semibold text-[#1E3A5F] hover:text-[#162C49] underline underline-offset-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0Z" />
+                <path d="M12 3v9m0 0l-3-2m3 3l3-2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Open File</button>
+            <span *ngIf="!item.fileUrl" class="text-xs text-slate-400">No file</span>
+          </td>
+
+          <td class="px-6 py-4">
+            <span
+              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold uppercase tracking-wider border"
+              [ngClass]="{
+                'bg-emerald-50 text-emerald-700 border border-emerald-200': item.status === 'verified',
+                'bg-amber-50 text-amber-700 border border-amber-200': item.status === 'pending',
+                'bg-rose-50 text-rose-700 border border-rose-200': item.status === 'rejected'
+              }"
+            >
+              <span
+                class="h-1.5 w-1.5 rounded-full"
+                [ngClass]="{
+                  'bg-emerald-600': item.status === 'verified',
+                  'bg-amber-500': item.status === 'pending',
+                  'bg-rose-500': item.status === 'rejected'
+                }"
+              ></span>
+              {{ item.statusLabel }}
+            </span>
+          </td>
+
+          <td class="px-6 py-4">
+            <div class="inline-flex gap-2">
+              <button
+                type="button"
+                (click)="openDocumentModal(item)"
+                class="bg-[#1E3A5F] hover:bg-[#162C49] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                Review</button>
+              <button
+                type="button"
+                (click)="deleteDocument(item)"
+                [disabled]="isDeletingDocument() === item.id"
+                class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                <span *ngIf="isDeletingDocument() !== item.id" class="flex items-center justify-center gap-2">
+                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zM17 6H7v13h10zM9 17h2V8H9zm4 0h2V8h-2zM7 6v13z"/></svg>
+                  Delete</span>
+                <span *ngIf="isDeletingDocument() === item.id" class="flex items-center justify-center gap-2">
+                  <svg class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                  Deleting…</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>
+
+<!-- Document Review Modal (view file + verify/reject with admin comment) -->
+<div *ngIf="showDocumentModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" (click)="closeDocumentModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200" (click)="$event.stopPropagation()">
+    <div class="p-6 border-b border-slate-200 flex justify-between items-start">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Document Review</h2>
+        <p class="text-sm text-slate-300 mt-1 font-semibold">{{ reviewItem()?.studentName }}</p>
+        <p class="text-xs text-slate-500 mt-0.5">{{ reviewItem()?.degreeProgram }} • {{ reviewItem()?.requirementTitle }}</p>
+      </div>
+      <button
+        type="button"
+        (click)="closeDocumentModal()"
+        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-6">
+      <!-- File preview card -->
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div class="w-16 h-16 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0 sm:w-20 sm:h-20">
+            <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round" />
+              <polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <div class="text-sm font-semibold text-slate-900 truncate sm:max-w-xs" [title]="reviewItem()?.fileName">{{ reviewItem()?.fileName }}</div>
+            <div class="mt-1 text-xs text-slate-500 flex items-center gap-1.5">
+              <span class="text-slate-400">{{ reviewItem()?.fileSize || 'Size unknown' }}</span>
+              <span class="text-amber-400">•</span>
+              <span class="text-slate-400">{{ reviewItem()?.uploadedDate }}</span>
+            </div>
+          </div>
+          <div class="flex items-end gap-2">
+            <button
+              type="button"
+              (click)="openFile(reviewItem()?.fileUrl ?? null, reviewItem()?.fileName ?? null)"
+              [disabled]="!reviewItem()?.fileUrl"
+              class="flex-1 bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0Z" />
+                <path d="M12 3v9m0 0l-3-2m3 3l3-2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Open Document<span *ngIf="!reviewItem()?.fileUrl" class="text-xs opacity-75"> — not uploaded</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-200">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold uppercase tracking-wider border"
+            [ngClass]="{
+              'bg-emerald-50 text-emerald-700 border border-emerald-200': reviewItem()?.status === 'verified',
+              'bg-amber-50 text-amber-700 border border-amber-200': reviewItem()?.status === 'pending',
+              'bg-rose-50 text-rose-700 border border-rose-200': reviewItem()?.status === 'rejected'
+            }"
+          >
+            <span
+              class="h-1.5 w-1.5 rounded-full"
+              [ngClass]="{
+                'bg-emerald-600': reviewItem()?.status === 'verified',
+                'bg-amber-500': reviewItem()?.status === 'pending',
+                'bg-rose-500': reviewItem()?.status === 'rejected'
+              }"
+            ></span>
+            Current: {{ reviewItem()?.statusLabel }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Admin comment -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Admin Comment (optional)</label>
+        <textarea
+          [(ngModel)]="reviewNotes"
+          rows="3"
+          class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors"
+          placeholder="Add notes about this decision…"
+        ></textarea>
+      </div>
+
+      <!-- Decision buttons -->
+      <div class="flex gap-3 pt-4 border-t border-slate-100">
+        <button
+          type="button"
+          (click)="closeDocumentModal()"
+          [disabled]="isSavingDocument()"
+          class="flex-1 border border-slate-200 text-slate-700 font-semibold py-3 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="reviewDecision.set('verified')"
+          [disabled]="isSavingDocument() || reviewDecision() === 'verified'"
+          class="flex-1 border border-emerald-200 text-emerald-700 font-semibold py-3 rounded-xl hover:bg-emerald-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          Verify
+        </button>
+        <button
+          type="button"
+          (click)="reviewDecision.set('rejected')"
+          [disabled]="isSavingDocument() || reviewDecision() === 'rejected'"
+          class="flex-1 border border-rose-200 text-rose-700 font-semibold py-3 rounded-xl hover:bg-rose-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          Reject
+        </button>
+        <button
+          type="button"
+          (click)="saveDocumentDecision()"
+          [disabled]="isSavingDocument() || !reviewDecision()"
+          class="flex-1 bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <span *ngIf="!isSavingDocument()" class="flex items-center justify-center gap-2">Save Decision</span>
+          <span *ngIf="isSavingDocument()" class="flex items-center justify-center gap-2">
+            <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            Saving…
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

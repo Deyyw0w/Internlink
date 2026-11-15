@@ -1,0 +1,4 @@
+/* Dashboard shell — layout handled by Tailwind utilities in dashboard.html */
+:host {
+  display: block;
+}

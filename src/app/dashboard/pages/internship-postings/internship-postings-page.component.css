@@ -1,0 +1,21 @@
+/* Internship Postings Page — layout structure; all styling via Tailwind utilities in the HTML */
+:host {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .partner-badge {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-header__filters {
+    flex-direction: column;
+  }
+
+  .page-header__search,
+  .page-header__filter {
+    width: 100%;
+    max-width: none;
+  }
+}

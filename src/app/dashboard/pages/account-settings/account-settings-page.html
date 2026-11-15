@@ -1,0 +1,351 @@
+<main class="w-full px-8 py-6 space-y-8">
+
+  <!-- Header -->
+  <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-amber-900/20 border border-amber-500/30 flex items-center justify-center">
+          <span class="text-xl font-bold text-white">{{ profileInitials() }}</span>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-0.5">Student Account</p>
+          <h1 class="text-xl font-bold tracking-tight text-white">{{ profile()?.full_name || 'Loading…' }}</h1>
+          <div class="flex items-center gap-3 text-sm text-slate-300">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              {{ profile()?.role || 'Student' }}
+            </span>
+            <span class="border-r border-slate-700 pr-3">{{ profile()?.student_id || '—' }}</span>
+            <span>Member since {{ memberSince() }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-2">
+      <button
+        type="button"
+        (click)="closeProfilePopup()"
+        (click)="closePasswordPopup()"
+        class="hidden"
+      ></button>
+    </div>
+  </section>
+
+  <!-- Profile Edit Section -->
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-8 space-y-6">
+
+      <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Account Information</h2>
+            <p class="text-xs text-slate-500 mt-1">Update your student profile details.</p>
+          </div>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <form (ngSubmit)="saveProfile()" novalidate>
+
+            <div class="space-y-5">
+              <!-- Full Name -->
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-slate-700">Full Name</label>
+                <div
+                  class="relative rounded-xl border bg-slate-50 flex items-center"
+                  [ngClass]="{
+                    'border-[#1E3A5F] focus-within:ring-1 focus-within:ring-[#1E3A5F]': true,
+                    'border-rose-500': editErrors()['full_name']
+                  }"
+                >
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <input
+                    id="full_name"
+                    type="text"
+                    placeholder="Juan Dela Cruz"
+                    [(ngModel)]="editForm().full_name"
+                    name="full_name"
+                    required
+                    class="w-full pl-10 pr-4 py-3 text-sm text-slate-500 outline-none bg-transparent border-none"
+                  />
+                  <p *ngIf="editErrors()['full_name']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['full_name'] }}</p>
+                </div>
+              </div>
+
+              <!-- Email -->
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-slate-700">Email Address</label>
+                <div
+                  class="relative rounded-xl border bg-slate-50 flex items-center"
+                  [ngClass]="{ 'border-rose-500': editErrors()['email'] }"
+                >
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2 .9-2 2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="student@uslt.edu.ph"
+                    [(ngModel)]="editForm().email"
+                    name="email"
+                    required
+                    class="w-full pl-10 pr-4 py-3 text-sm text-slate-500 outline-none bg-transparent border-none"
+                  />
+                  <p *ngIf="editErrors()['email']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['email'] }}</p>
+                </div>
+              </div>
+
+              <!-- Student ID -->
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-slate-700">Student ID</label>
+                <div
+                  class="relative rounded-xl border bg-slate-50 flex items-center"
+                  [ngClass]="{ 'border-rose-500': editErrors()['student_id'] }"
+                >
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <input
+                    id="student_id"
+                    type="text"
+                    placeholder="e.g. 2023-0001"
+                    [(ngModel)]="editForm().student_id"
+                    name="student_id"
+                    required
+                    class="w-full pl-10 pr-4 py-3 text-sm text-slate-500 outline-none bg-transparent border-none"
+                  />
+                  <p *ngIf="editErrors()['student_id']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['student_id'] }}</p>
+                </div>
+              </div>
+
+              <!-- Mobile -->
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-slate-700">Mobile Number</label>
+                <div
+                  class="relative rounded-xl border bg-slate-50 flex items-center"
+                  [ngClass]="{ 'border-rose-500': editErrors()['mobile'] }"
+                >
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <input
+                    id="mobile"
+                    type="tel"
+                    placeholder="+63 912 345 6789"
+                    [(ngModel)]="editForm().mobile"
+                    name="mobile"
+                    required
+                    class="w-full pl-10 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+                  />
+                  <p *ngIf="editErrors()['mobile']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['mobile'] }}</p>
+                </div>
+              </div>
+
+              <!-- Degree Program -->
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-slate-700">Degree Program</label>
+                <div class="relative rounded-xl border bg-slate-50">
+                  <input
+                    id="degree_program"
+                    type="text"
+                    placeholder="e.g. BS Information Technology"
+                    [(ngModel)]="editForm().degree_program"
+                    name="degree_program"
+                    class="w-full px-4 py-3 text-sm text-slate-500 outline-none bg-transparent border-none"
+                  />
+                </div>
+              </div>
+
+              <!-- Submit Error -->
+              <div *ngIf="editSubmitError()" class="bg-red-50 border-l-4 border-red-500 text-red-800 p-3 rounded-r text-sm">
+                {{ editSubmitError() }}
+              </div>
+
+              <!-- Save Button -->
+              <button
+                type="submit"
+                [disabled]="isSavingProfile()"
+                class="mt-2 w-full bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <span *ngIf="!isSavingProfile()" class="flex items-center justify-center gap-2">Save Changes</span>
+                <span *ngIf="isSavingProfile()" class="flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                  Saving…
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Last Updated -->
+      <section class="bg-slate-50 border border-slate-100 rounded-2xl p-6">
+        <div class="space-y-3">
+          <div class="flex justify-between items-center py-2 border-b border-slate-200/50 last:border-0">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Last Updated</span>
+            <span class="text-sm font-medium text-slate-900">{{ lastUpdated() }}</span>
+          </div>
+          <div class="flex justify-between items-center py-2 border-b border-slate-200/50 last:border-0">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Degree Program</span>
+            <span class="text-sm font-medium text-slate-900">{{ profile()?.degree_program || '—' }}</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Password Change Section -->
+    <div class="lg:col-span-4 space-y-6">
+      <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden sticky top-6">
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+          <h2 class="text-lg font-bold text-slate-900">Change Password</h2>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <form (ngSubmit)="savePassword()" novalidate>
+
+            <div class="space-y-5">
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-slate-700">Current Password</label>
+                <div
+                  class="relative rounded-xl border bg-slate-50"
+                  [ngClass]="{ 'border-rose-500': passwordErrors()['current_password'] }"
+                >
+                  <input
+                    id="cp-currentPassword"
+                    type="password"
+                    placeholder="Enter your current password"
+                    [(ngModel)]="passwordForm().current_password"
+                    name="current_password"
+                    required
+                    class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+                  />
+                  <p *ngIf="passwordErrors()['current_password']" class="text-xs text-rose-600 mt-0.5">{{ passwordErrors()['current_password'] }}</p>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-slate-700">New Password</label>
+                <div
+                  class="relative rounded-xl border bg-slate-50"
+                  [ngClass]="{ 'border-rose-500': passwordErrors()['new_password'] }"
+                >
+                  <input
+                    id="cp-newPassword"
+                    type="password"
+                    placeholder="New password (min 6 characters)"
+                    [(ngModel)]="passwordForm().new_password"
+                    name="new_password"
+                    required
+                    class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+                  />
+                  <p *ngIf="passwordErrors()['new_password']" class="text-xs text-rose-600 mt-0.5">{{ passwordErrors()['new_password'] }}</p>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-slate-700">Confirm New Password</label>
+                <div
+                  class="relative rounded-xl border bg-slate-50"
+                  [ngClass]="{ 'border-rose-500': passwordErrors()['confirm_password'] }"
+                >
+                  <input
+                    id="cp-confirmPassword"
+                    type="password"
+                    placeholder="Confirm your new password"
+                    [(ngModel)]="passwordForm().confirm_password"
+                    name="confirm_password"
+                    required
+                    class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+                  />
+                  <p *ngIf="passwordErrors()['confirm_password']" class="text-xs text-rose-600 mt-0.5">{{ passwordErrors()['confirm_password'] }}</p>
+                </div>
+              </div>
+
+              <div *ngIf="passwordSubmitError()" class="bg-red-50 border-l-4 border-red-500 text-red-800 p-3 rounded-r text-sm">
+                {{ passwordSubmitError() }}
+              </div>
+
+              <button
+                type="submit"
+                [disabled]="isSavingPassword()"
+                class="w-full bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <span *ngIf="!isSavingPassword()" class="flex items-center justify-center gap-2">Change Password</span>
+                <span *ngIf="isSavingPassword()" class="flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                  Changing…
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Quick Actions -->
+      <section class="bg-slate-50 border border-slate-100 rounded-2xl p-6 space-y-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Quick Actions</h3>
+        <button
+          type="button"
+          routerLink="/dashboard/overview"
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-[#1E3A5F]/10 hover:text-[#1E3A5F] transition-colors"
+        >
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m0 0l2 2m-2-2l-2 2m0 0l-2 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Back to Dashboard
+        </button>
+        <button
+          type="button"
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-amber-50 transition-colors"
+        >
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 19A2 2 0 017 21h10a2 2 0 002-2V5a2 2 0 114 0v14a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          My Documents
+        </button>
+      </section>
+    </div>
+  </section>
+
+</main>
+
+<!-- Profile Updated Popup -->
+<div *ngIf="showProfilePopup()" class="fixed inset-0 z-[60] flex items-center justify-center">
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeProfilePopup()"></div>
+  <div class="relative w-full max-w-md mx-4 bg-white rounded-3xl border border-slate-200/80 shadow-2xl p-8 sm:p-10">
+    <div class="flex items-start gap-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 bg-emerald-100 text-emerald-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-slate-900 mb-1">Account Updated</h3>
+        <p class="text-slate-600 text-sm">{{ profilePopupMessage() }}</p>
+      </div>
+    </div>
+    <div class="mt-6 flex justify-end">
+      <button type="button" (click)="closeProfilePopup()" class="bg-[#1E3A5F] hover:bg-[#162C49] text-white font-semibold px-6 py-2 rounded-xl shadow-sm transition-colors">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password Changed Popup -->
+<div *ngIf="showPasswordPopup()" class="fixed inset-0 z-[60] flex items-center justify-center">
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closePasswordPopup()"></div>
+  <div class="relative w-full max-w-md mx-4 bg-white rounded-3xl border border-slate-200/80 shadow-2xl p-8 sm:p-10">
+    <div class="flex items-start gap-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 bg-emerald-100 text-emerald-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-slate-900 mb-1">Password Changed</h3>
+        <p class="text-slate-600 text-sm">{{ passwordPopupMessage() }}</p>
+      </div>
+    </div>
+    <div class="mt-6 flex justify-end">
+      <button type="button" (click)="closePasswordPopup()" class="bg-[#1E3A5F] hover:bg-[#162C49] text-white font-semibold px-6 py-2 rounded-xl shadow-sm transition-colors">OK</button>
+    </div>
+  </div>
+</div>

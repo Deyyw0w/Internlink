@@ -1,0 +1,256 @@
+<div class="partner-agencies-page min-h-full bg-[#f1f5f9]">
+
+  <!-- Header -->
+  <div class="bg-[#1E3A5F] text-white rounded-2xl p-8 shadow-sm relative overflow-hidden border-l-4 border-amber-500 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mt-6">
+    <div class="flex flex-col gap-4 lg:flex-1 min-w-0">
+      <span class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1 block">Partner Agencies</span>
+      <h2 class="text-3xl font-extrabold text-white mb-2">Agency Network</h2>
+      <p class="text-sm text-slate-200 mt-1 max-w-xl">
+        Manage local, national, and international HTE partners supporting student internship placements. Data is sourced live from the <code class="text-amber-300">companies</code> table.
+      </p>
+
+      <!-- Stat Boxes Row -->
+      <div class="flex flex-wrap gap-4 mt-4">
+        <div class="bg-white/10 border border-white/15 rounded-2xl px-5 py-3.5 flex flex-col min-w-[180px] w-auto md:min-w-[200px]">
+          <span class="text-2xl font-bold text-white">{{ totalCount }}</span>
+          <span class="text-xs font-semibold text-amber-400 tracking-wider mt-1">Total Agencies</span>
+        </div>
+        <div class="bg-white/10 border border-white/15 rounded-2xl px-5 py-3.5 flex flex-col min-w-[180px] w-auto md:min-w-[200px]">
+          <span class="text-2xl font-bold text-white text-emerald-400">{{ activeCount }}</span>
+          <span class="text-xs font-semibold text-emerald-400 tracking-wider mt-1">Active Partners</span>
+        </div>
+        <div class="bg-white/10 border border-white/15 rounded-2xl px-5 py-3.5 flex flex-col min-w-[180px] w-auto md:min-w-[200px]">
+          <span class="text-2xl font-bold text-white text-blue-400">{{ totalSlots }}</span>
+          <span class="text-xs font-semibold text-blue-400 tracking-wider mt-1">Total Application Slots</span>
+        </div>
+        <div class="bg-white/10 border border-white/15 rounded-2xl px-5 py-3.5 flex flex-col min-w-[180px] w-auto md:min-w-[200px]">
+          <span class="text-2xl font-bold text-white text-rose-400">{{ filledSlots }}</span>
+          <span class="text-xs font-semibold text-rose-400 tracking-wider mt-1">Students Applied</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side: Add Agency button only -->
+    <div class="flex gap-3">
+      <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-[0_4px_6px_-1px_rgba(59,130,246,0.3)] flex items-center gap-2 whitespace-nowrap transition-all duration-200 hover:shadow-[0_6px_8px_-1px_rgba(59,130,246,0.4)] hover:-translate-y-[1px]" (click)="openAddForm()">
+        <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Add Agency
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="w-full px-8 py-20 flex justify-center">
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-[spin_1s_linear_infinite]"></div>
+      <p class="text-slate-500 text-sm">Loading agencies…</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error() && !loading()" class="w-full px-8 py-20 flex justify-center">
+    <div class="text-center">
+      <p class="text-rose-600 text-sm font-medium mb-2">Unable to load agencies</p>
+      <p class="text-xs text-slate-500 mb-4">{{ error() }}</p>
+      <button type="button" class="px-4 py-2 rounded-xl bg-[#1E3A5F] text-white text-xs font-bold hover:bg-blue-700" (click)="loadAgencies()">
+        Retry
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters / Search -->
+  <section *ngIf="!loading() && !error()" class="w-full px-8 py-4 space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-3" role="tablist" aria-label="Agency category">
+        <button
+          type="button"
+          *ngFor="let category of categories"
+          (click)="setCategory(category)"
+          [ngClass]="{
+            'bg-[#1E3A5F] text-white': activeCategory === category,
+            'bg-slate-100 text-slate-600': activeCategory !== category
+          }"
+          class="px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm whitespace-nowrap"
+        >
+          {{ categoryLabels[category] }}
+        </button>
+      </div>
+
+      <div class="relative flex items-center">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Search agencies by name or location..." [(ngModel)]="searchQuery" class="bg-white border border-slate-200 text-slate-800 placeholder-slate-400 rounded-full pl-10 pr-4 py-2 text-sm w-64 sm:w-80 shadow-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-2 focus:ring-[#1E3A5F]/15 transition-all"/>
+      </div>
+
+      <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1E3A5F]/5 border border-[#1E3A5F]/10">
+        <span class="text-xs font-medium text-slate-600">
+          <strong class="text-[#1E3A5F] font-semibold">{{ filteredAgencies.length }}</strong> agencies
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="filteredAgencies.length === 0" class="text-center py-16">
+      <svg viewBox="0 0 24 24" class="w-12 h-12 text-slate-400 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 21V7l8-4 8 4v14H4Z" stroke-linejoin="round"/><path d="M12 3v18" stroke-linecap="round"/></svg>
+      <h2 class="text-lg font-bold text-slate-900 mb-2">No agencies found</h2>
+      <p class="text-slate-500 text-sm">There are no agencies in this category yet.</p>
+    </div>
+  </section>
+
+  <!-- Agency Management Table -->
+  <section *ngIf="!loading() && !error() && filteredAgencies.length > 0" class="w-full px-8 py-6 space-y-6">
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200">
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Agency</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Category</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Slots</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Applicants</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr *ngFor="let agency of filteredAgencies; trackBy: trackByAgency" class="hover:bg-slate-50 transition-colors">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-[#1E3A5F] font-bold text-sm">
+                    {{ agency.initials }}
+                  </div>
+                  <div>
+                    <div class="font-semibold text-slate-900">{{ agency.name }}</div>
+                    <div class="text-xs text-slate-500">{{ agency.country }} · {{ agency.location }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-[#1E3A5F] text-[10px] font-bold uppercase whitespace-nowrap">
+                  <span class="h-1.5 w-1.5 rounded-full bg-[#1E3A5F]"></span>
+                  {{ categoryLabels[agency.category] }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-slate-600">{{ agency.location }}</td>
+              <td class="px-6 py-4">
+                <span [ngClass]="statusColor(agency.status)" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full whitespace-nowrap inline-block cursor-pointer hover:opacity-80 transition-colors" (click)="toggleStatus(agency)">
+                  {{ agency.status.toUpperCase() }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <div *ngIf="editingId() === agency.id; else viewSlots" class="flex items-center gap-2">
+                  <input type="number" [(ngModel)]="editSlots" class="w-20 border border-slate-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" min="0" />
+                  <button type="button" class="bg-[#1E3A5F] text-white text-xs font-bold px-2.5 py-1.5 rounded-md hover:bg-blue-700 transition-colors" (click)="saveEdit(agency)">Save</button>
+                  <button type="button" class="text-slate-500 hover:text-rose-600 text-xs font-bold" (click)="cancelEdit()">Cancel</button>
+                </div>
+                <ng-template #viewSlots>
+                  <span class="text-sm font-medium text-slate-800">{{ agency.slots }}</span>
+                  <span *ngIf="agency.interns > 0" class="text-xs text-slate-400 ml-1">({{ agency.interns }} applied)</span>
+                  <button type="button" class="ml-2 text-[#1E3A5F] text-xs font-bold hover:underline" (click)="startEdit(agency)">Edit</button>
+                </ng-template>
+              </td>
+              <td class="px-6 py-4">
+                <button type="button" class="px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white text-xs font-bold hover:bg-blue-700 transition-colors" (click)="openApplicants(agency.name)">
+                  View Applicants
+                </button>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button type="button" class="ml-2 px-3 py-1.5 rounded-md bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors" (click)="deleteAgency(agency)">
+                  Delete
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Applicants Modal -->
+  <div *ngIf="showApplicantsModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" (click)="closeApplicants()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200" (click)="$event.stopPropagation()">
+      <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 mb-1">Applicants — {{ selectedAgencyForApplicants() }}</h3>
+          <p class="text-xs text-slate-500">Students who have applied to this agency.</p>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" (click)="closeApplicants()">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div *ngIf="applicants().length === 0" class="text-center py-8 text-slate-500 text-sm">
+          No applicants yet for this agency.
+        </div>
+        <div *ngIf="applicants().length > 0" class="divide-y divide-slate-200">
+          <div *ngFor="let app of applicants()" class="flex items-center justify-between py-4">
+            <div class="flex flex-col">
+              <div class="font-semibold text-slate-900 text-sm">{{ app.student_name }}</div>
+              <div class="text-xs text-slate-500">ID: {{ app.student_id }} · {{ app.email }}</div>
+            </div>
+            <div class="flex flex-col items-end">
+              <div class="text-sm font-semibold text-slate-800">{{ app.reference_number }}</div>
+              <div class="text-xs text-slate-500">{{ app.position_role }}</div>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                [ngClass]="app.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : app.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'">
+                <span class="h-1.5 w-1.5 rounded-full" [ngClass]="app.status === 'approved' ? 'bg-emerald-500' : app.status === 'rejected' ? 'bg-rose-500' : 'bg-amber-500'"></span>
+                {{ app.status.toUpperCase() }}
+              </span>
+            </div>
+            <div class="text-xs text-slate-400">{{ app.submitted_at ? (app.submitted_at | date:'shortDate') : '—' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Agency Form -->
+  <div *ngIf="showAddForm()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" (click)="closeAddForm()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200" (click)="$event.stopPropagation()">
+      <div class="p-6 border-b border-slate-200 flex justify-between items-start">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 mb-1">Add Partner Agency</h3>
+          <p class="text-xs text-slate-500">Create a new partner agency in the companies table.</p>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" (click)="closeAddForm()">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Agency Name</label>
+          <input type="text" [(ngModel)]="newName" placeholder="e.g. SoftBank Group" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Country</label>
+          <input type="text" [(ngModel)]="newCountry" placeholder="e.g. Japan" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Location</label>
+          <input type="text" [(ngModel)]="newLocation" placeholder="e.g. Tokyo, Japan" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Description / Industry</label>
+          <textarea [(ngModel)]="newDescription" rows="2" placeholder="Industry or description" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Application Slots</label>
+            <input type="number" [(ngModel)]="newSlots" placeholder="0" min="0" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+          </div>
+          <div class="flex items-end">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Status</label>
+            <select [(ngModel)]="newStatus" class="ml-1 w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition-colors" (click)="closeAddForm()">Cancel</button>
+          <button type="button" class="px-4 py-2 rounded-lg bg-[#1E3A5F] text-white font-semibold text-xs hover:bg-blue-700 transition-colors" (click)="addAgency()">Create Agency</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

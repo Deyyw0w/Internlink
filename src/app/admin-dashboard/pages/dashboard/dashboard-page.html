@@ -1,0 +1,82 @@
+<div class="grid gap-8">
+  <section class="bg-[#1E3A5F] text-white rounded-2xl p-7 shadow-sm flex items-start justify-between gap-6">
+
+    <div class="max-w-[42rem]">
+        <span class="inline-flex items-center rounded-full bg-amber-500/20 border border-amber-500/30 px-4 py-2 text-[0.6875rem] font-extrabold tracking-[0.28em] uppercase text-amber-200">GLOCAL Administration &amp; Supervision Console</span>
+
+        <h1 class="mt-5 text-[clamp(2rem,4vw,3.5rem)] leading-[1.05] font-extrabold tracking-[-0.04em]">Internship Department Overview</h1>
+
+        <p class="mt-4 max-w-[42rem] text-[0.95rem] leading-[1.8] text-[#cbd5e1]">
+          Real-time monitoring of student endorsements, approvals, partner agencies, and compliance workflows in one place.
+        </p>
+
+        <button type="button" class="inline-flex items-center gap-2 border-0 rounded-[1.25rem] bg-[#2563eb] px-[1.25rem] py-[0.9rem] text-[0.95rem] font-extrabold text-white shadow-[0_16px_30px_rgba(37,99,235,0.3)] cursor-pointer transition-all duration-[180ms] ease-in hover:bg-[#3b82f6] hover:-translate-y-[1px] hover:shadow-[0_20px_34px_rgba(37,99,235,0.35)]">
+          Generate Reports
+          <svg viewBox="0 0 24 24" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m9 18 6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+  </section>
+
+  <section class="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+    <article
+      *ngFor="let card of statCards(); trackBy: trackByStat"
+      class="border border-slate-200 rounded-[1.75rem] bg-white p-[1.25rem] shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-[180ms] hover:-translate-y-[2px] hover:border-[#3b82f6]/18 hover:shadow-[0_16px_38px_rgba(15,23,42,0.09)]"
+    >
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-[0.6875rem] font-extrabold tracking-[0.24em] uppercase text-slate-400">{{ card.label }}</p>
+          <h2 class="mt-[0.75rem] text-[clamp(2rem,3vw,3.25rem)] leading-1 font-extrabold tracking-[-0.05em] text-slate-900">{{ card.value }}</h2>
+        </div>
+
+        <div
+          class="grid place-items-center w-[3rem] h-[3rem] rounded-[1rem]"
+          [ngClass]="{
+            'bg-blue-50 text-blue-600': card.tone === 'blue',
+            'bg-orange-50 text-orange-600': card.tone === 'orange',
+            'bg-emerald-50 text-emerald-600': card.tone === 'green',
+            'bg-violet-50 text-violet-500': card.tone === 'purple'
+          }"
+        >
+          <ng-container [ngSwitch]="card.icon">
+            <svg *ngSwitchCase="'users'" viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21a5 5 0 0 0-10 0" stroke-linecap="round" />
+              <path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+            </svg>
+
+            <svg *ngSwitchCase="'clock'" viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+
+            <svg *ngSwitchCase="'check'" viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="m8 12 2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+
+            <svg *ngSwitchCase="'building'" viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 21V7l8-4 8 4v14H4Z" stroke-linejoin="round" />
+              <path d="M12 3v18" stroke-linecap="round" />
+              <path d="M8 11h2M8 15h2M14 11h2M14 15h2" stroke-linecap="round" />
+            </svg>
+          </ng-container>
+        </div>
+      </div>
+
+      <p
+        class="mt-[1rem] text-[0.95rem] font-bold leading-[1.8]"
+        [ngClass]="{
+          'text-blue-600': card.tone === 'blue',
+          'text-orange-600': card.tone === 'orange',
+          'text-emerald-600': card.tone === 'green',
+          'text-violet-500': card.tone === 'purple'
+        }"
+      >
+        {{ card.subtext }}
+      </p>
+    </article>
+  </section>
+
+  <app-news-carousel [title]="'News & Updates'" [items]="newsItems()" />
+</div>

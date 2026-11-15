@@ -1,0 +1,79 @@
+﻿<!-- Backdrop click-catcher (closes dropdown when clicking outside) -->
+<div *ngIf="isProfileMenuOpen" class="fixed inset-0 z-10" (click)="closeProfileMenu()"
+     aria-hidden="true"></div>
+
+<header class="sticky top-0 z-40 left-0 right-0 lg:fixed lg:left-72 flex items-center justify-between gap-6 border-b-[3px] border-amber-500 bg-[#1E3A5F] text-white px-6 h-20">
+
+  <!-- Search -->
+  <div class="flex w-full max-w-2xl items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-3">
+    <svg class="h-5 w-5 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" stroke-linecap="round" />
+   </svg>
+    <input type="search"
+           placeholder="Search students, agencies, MOAs..."
+           class="w-full bg-transparent text-sm text-white outline-none placeholder-slate-300" />
+ </div>
+
+  <!-- Right cluster -->
+  <div class="flex items-center gap-3">
+
+    <!-- Notifications -->
+    <button type="button" aria-label="Notifications"
+            class="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/20 hover:text-amber-300">
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M10 21a2 2 0 0 0 4 0" stroke-linecap="round" />
+     </svg>
+   </button>
+
+    <!-- Profile menu -->
+    <div class="relative">
+      <button type="button"
+              (click)="toggleProfileMenu()"
+              [attr.aria-expanded]="isProfileMenuOpen"
+              aria-haspopup="menu"
+              class="flex cursor-pointer items-center gap-3 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20 hover:text-amber-300">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-amber-600 text-white text-sm font-extrabold">{{ adminInitials() }}</div>
+        <div class="hidden text-left leading-tight sm:block">
+          <strong class="block text-sm font-bold text-white">{{ adminName() }}</strong>
+          <span class="text-xs text-white/70">Admin Account</span>
+       </div>
+        <svg class="h-4 w-4 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+       </svg>
+     </button>
+
+      <!-- Dropdown -->
+      <div *ngIf="isProfileMenuOpen"
+           role="menu"
+           class="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-white/20 bg-[#1E3A5F]/95 shadow-lg backdrop-blur-sm text-white">
+
+        <!-- User info -->
+        <div class="px-4 pb-3 pt-4">
+          <p class="text-sm font-bold text-white">{{ adminName() }}</p>
+          <p class="text-xs text-white/70">{{ adminEmail() }}</p>
+          <span class="mt-2 inline-block rounded-md bg-usl-gold px-2 py-1 font-mono text-xs font-medium text-slate-900">GLOCAL Admin</span>
+       </div>
+
+        <!-- Divider -->
+        <div class="my-2 border-t border-white/10"></div>
+
+        <!-- Sign Out -->
+        <button type="button"
+                role="menuitem"
+                (click)="signOut()"
+                class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-white/80 transition-colors hover:bg-white/10 hover:text-amber-300">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+         </svg>
+          <span class="text-sm font-medium">Sign Out</span>
+       </button>
+
+     </div>
+   </div>
+
+ </div>
+</header>
