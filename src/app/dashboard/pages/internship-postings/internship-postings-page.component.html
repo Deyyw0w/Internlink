@@ -77,8 +77,6 @@
                   <h2 class="card-title text-xl font-bold text-slate-900">{{ post.country }}</h2>
                   <span class="role text-sm font-semibold text-blue-600">{{ post.track }}</span>
                 </div>
-                <div class="company text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-1">{{ post.companyName }}</div>
-
                 <p class="description text-xs text-slate-600 leading-relaxed mb-4">{{ post.description }}</p>
 
                 <div class="metadata grid grid-cols-2 gap-3 mb-4">
@@ -124,7 +122,6 @@
         <div>
           <h2 class="text-lg font-bold text-slate-900">{{ selectedPost?.country }} — {{ selectedPost?.track }}</h2>
           <p class="text-xs font-bold uppercase tracking-wider text-amber-600 mt-1">{{ selectedPost?.degree }}</p>
-          <p class="text-sm text-slate-600 mt-1">{{ selectedPost?.companyName }}</p>
         </div>
         <button type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" (click)="closeDetails()">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
