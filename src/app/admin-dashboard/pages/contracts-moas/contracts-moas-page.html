@@ -419,29 +419,6 @@
           </select>
         </div>
 
-        <!-- File Upload (required) -->
-        <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Contract File <span class="text-rose-500">*</span></label>
-          <div class="relative rounded-xl border border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-between p-4 cursor-pointer group hover:border-blue-400/50 transition-colors">
-            <label for="contract-upload-file" class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer z-10">
-              <svg class="w-6 h-6 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Choose PDF, DOCX, or image
-            </label>
-            <input
-              id="contract-upload-file"
-              type="file"
-              (change)="onUploadFile($event)"
-              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            />
-          </div>
-          <div *ngIf="uploadForm.fileName" class="flex items-center gap-2 px-3 py-1 mt-1">
-            <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="3"/></svg>
-            <span class="text-xs text-slate-600 truncate max-w-xs" [title]="uploadForm.fileName">{{ uploadForm.fileName }}</span>
-          </div>
-          <p *ngIf="uploadSubmitError()" class="text-xs text-rose-600 mt-0.5">{{ uploadSubmitError() }}</p>
-        </div>
-
         <!-- Errors -->
         <div *ngIf="uploadSubmitError()" class="bg-rose-50 border-l-4 border-rose-500 text-rose-800 p-3 rounded-r text-sm">
           {{ uploadSubmitError() }}
