@@ -329,14 +329,15 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
             <div *ngIf="!editingTemplate()" class="flex flex-col gap-2">
               <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Template File</label>
               <div class="relative rounded-xl border border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-between p-4 cursor-pointer group hover:border-blue-400/50 transition-colors">
-                <label class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+                <label for="form-template-upload-file" class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
                   <svg class="w-6 h-6 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   Choose PDF, DOCX, or image
                 </label>
                 <input
+                  id="form-template-upload-file"
                   type="file"
                   (change)="onEditFormFile($event)"
-                  class="hidden"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 />
               </div>
@@ -350,14 +351,15 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
             <div *ngIf="editingTemplate()" class="flex flex-col gap-2">
               <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Replace File</label>
               <div class="relative rounded-xl border border-dashed border-amber-300 bg-amber-50/50 flex items-center justify-between p-4 cursor-pointer group hover:border-amber-500/50 transition-colors">
-                <label class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+                <label for="form-template-replace-edit-file" class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
                   <svg class="w-6 h-6 text-slate-400 group-hover:text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19A2 2 0 017 21h10a2 2 0 002-2V5a2 2 0 114 0v14a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   Upload new file to replace current
                 </label>
                 <input
+                  id="form-template-replace-edit-file"
                   type="file"
                   (change)="onEditFormFile($event)"
-                  class="hidden"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 />
               </div>
@@ -433,14 +435,15 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
             <div class="flex flex-col gap-2">
               <label class="text-xs font-bold uppercase tracking-wider text-slate-500">New Template File</label>
               <div class="relative rounded-xl border border-dashed border-amber-300 bg-amber-50/50 flex items-center justify-between p-4 cursor-pointer group hover:border-amber-500/50 transition-colors">
-                <label class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-amber-700 cursor-pointer">
+                <label for="form-template-replace-file" class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-amber-700 cursor-pointer">
                   <svg class="w-6 h-6 text-slate-400 group-hover:text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19A2 2 0 017 21h10a2 2 0 002-2V5a2 2 0 114 0v14a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   Choose PDF, DOCX, or image
                 </label>
                 <input
+                  id="form-template-replace-file"
                   type="file"
                   (change)="onReplaceFile($event)"
-                  class="hidden"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 />
               </div>
