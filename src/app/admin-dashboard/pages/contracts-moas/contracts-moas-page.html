@@ -315,12 +315,11 @@
             <select
               [ngModel]="uploadForm.category_id"
               (ngModelChange)="uploadForm.category_id = $event"
-              class="w-full pl-4 pr-10 py-3 text-sm text-slate-900 border-none outline-none focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent transition-colors appearance-none cursor-pointer"
+              class="w-full pl-4 pr-10 py-3 text-sm text-slate-900 border-none outline-none focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent transition-colors cursor-pointer"
             >
               <option value="" disabled selected class="text-slate-400">Select a category…</option>
               <option *ngFor="let cat of activeCategories()" [value]="cat.id">{{ cat.name }}</option>
             </select>
-            <svg class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </div>
           <p *ngIf="uploadSubmitError() && !uploadForm.category_id" class="text-xs text-rose-600 mt-0.5">A category is required before uploading.</p>
         </div>
@@ -424,15 +423,15 @@
         <div class="flex flex-col gap-2">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Contract File <span class="text-rose-500">*</span></label>
           <div class="relative rounded-xl border border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-between p-4 cursor-pointer group hover:border-blue-400/50 transition-colors">
-            <label for="contract-upload-file" class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
-              <svg class="w-6 h-6 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <label for="contract-upload-file" class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer z-10">
+              <svg class="w-6 h-6 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Choose PDF, DOCX, or image
             </label>
             <input
               id="contract-upload-file"
               type="file"
               (change)="onUploadFile($event)"
-              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
             />
           </div>
