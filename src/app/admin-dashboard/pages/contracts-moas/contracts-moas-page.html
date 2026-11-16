@@ -461,7 +461,7 @@
           <button
             type="submit"
             [disabled]="isUploadingContract()"
-            class="flex-1 bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            class="flex-1 bg-[#1E3A5F] [&:hover:not([disabled])]:bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span *ngIf="!isUploadingContract()" class="flex items-center justify-center gap-2">
               Upload Contract
@@ -591,7 +591,7 @@
           <button
             type="submit"
             [disabled]="isSavingCategory()"
-            class="flex-1 bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            class="flex-1 bg-[#1E3A5F] [&:hover:not([disabled])]:bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span *ngIf="!isSavingCategory()" class="flex items-center justify-center gap-2">
               {{ editingCategory() ? 'Save Changes' : 'Add Category' }}
@@ -763,7 +763,7 @@
           <button
             type="submit"
             [disabled]="isSavingContract()"
-            class="flex-1 bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            class="flex-1 bg-[#1E3A5F] [&:hover:not([disabled])]:bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span *ngIf="!isSavingContract()" class="flex items-center justify-center gap-2">
               Save Changes
@@ -839,7 +839,7 @@
           <button
             type="submit"
             [disabled]="isReplacingFile() || !contractEditForm.file"
-            class="flex-1 bg-amber-500 hover:not([disabled]):bg-amber-600 text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            class="flex-1 bg-amber-500 [&:hover:not([disabled])]:bg-amber-600 text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span *ngIf="!isReplacingFile()" class="flex items-center justify-center gap-2">Replace File</span>
             <span *ngIf="isReplacingFile()" class="flex items-center justify-center gap-2">
