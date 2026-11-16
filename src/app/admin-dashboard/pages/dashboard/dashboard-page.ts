@@ -5,7 +5,7 @@ import { NewsCarouselComponent, NewsItem } from '../../news-carousel/news-carous
 import { supabase } from '../../../../environments/supabase.config';
 
 type StatTone = 'blue' | 'orange' | 'green' | 'purple';
-type StatIcon = 'users' | 'clock' | 'check' | 'building';
+type StatIcon = 'file-text' | 'clock' | 'users' | 'building';
 
 interface StatCard {
   label: string;
@@ -51,23 +51,51 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
     this.error.set(null);
 
     try {
-      // Total applicants + pending + approved from applications
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      // Documents pending verification (requires admin action)
+      const { data: reqs, error: reqsError } = await supabase
+        .from('student_requirements')
+        .select('id, status');
+
+      if (reqsError) throw reqsError;
+
+      const requirements = (reqs || []) as any[];
+      const pendingDocs = requirements.filter(
+        (r) => (r.status || 'pending').toLowerCase() === 'pending'
+      ).length;
+
+      // Applications submitted today
       const { data: apps, error: appsError } = await supabase
         .from('internship_applications')
-        .select('id, status');
+        .select('id, submitted_at');
 
       if (appsError) throw appsError;
 
       const applications = (apps || []) as any[];
-      const totalApps = applications.length;
-      const pendingApps = applications.filter((a) =>
-        a.status?.toLowerCase() === 'under-review' || a.status?.toLowerCase() === 'pending'
-      ).length;
-      const approvedApps = applications.filter((a) =>
-        a.status?.toLowerCase() === 'approved'
-      ).length;
+      const appsToday = applications.filter((a) => {
+        const d = new Date(a.submitted_at || '');
+        return !isNaN(d.getTime()) && d >= todayStart && d <= todayEnd;
+      }).length;
 
-      // Partner agencies (active + total)
+      // New students this month
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, role, created_at');
+
+      if (profilesError) throw profilesError;
+
+      const profileRows = (profiles || []) as any[];
+      const newStudents = profileRows.filter((p) => {
+        if (p.role?.toLowerCase() !== 'student') return false;
+        const d = new Date(p.created_at || '');
+        return !isNaN(d.getTime()) && d >= monthStart;
+      }).length;
+
+      // Active partner agencies
       const { data: companies, error: companiesError } = await supabase
         .from('companies')
         .select('id, is_active');
@@ -80,28 +108,28 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
 
       this.statCards.set([
         {
-          label: 'TOTAL APPLICANTS',
-          value: String(totalApps),
-          subtext: 'AY 2026-2027 Cohort',
-          tone: 'blue',
-          icon: 'users',
+          label: 'PENDING DOCUMENTS',
+          value: String(pendingDocs),
+          subtext: 'Awaiting Verification',
+          tone: 'orange',
+          icon: 'file-text',
         },
         {
-          label: 'PENDING REVIEW',
-          value: String(pendingApps),
-          subtext: 'Requires Action',
-          tone: 'orange',
+          label: 'APPLICATIONS TODAY',
+          value: String(appsToday),
+          subtext: 'Submitted Today',
+          tone: 'blue',
           icon: 'clock',
         },
         {
-          label: 'APPROVED PLACEMENTS',
-          value: String(approvedApps),
-          subtext: 'Cleared for Deployment',
+          label: 'NEW STUDENTS THIS MONTH',
+          value: String(newStudents),
+          subtext: 'Joined This Month',
           tone: 'green',
-          icon: 'check',
+          icon: 'users',
         },
         {
-          label: 'PARTNER AGENCIES (HTE)',
+          label: 'ACTIVE AGENCIES',
           value: String(activeAgencies),
           subtext: `${totalAgencies} Total`,
           tone: 'purple',

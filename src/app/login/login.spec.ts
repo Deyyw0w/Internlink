@@ -20,46 +20,13 @@ describe('Login', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should default to student role', () => {
-    expect(component.selectedRole).toBe('student');
-  });
-
-  it('should switch role when setRole is called', () => {
-    component.setRole('admin');
-
-    expect(component.selectedRole).toBe('admin');
-    expect(component.error).toBe('');
-  });
-
-  it('should show error when submitting empty fields', () => {
+  it('should show error when submitting empty fields', async () => {
     component.email = '';
     component.password = '';
 
-    component.onSubmit();
+    await component.onSubmit();
 
-    expect(component.error).toBe('Please enter your USLT credentials to continue.');
-  });
-
-  it('should navigate students to the student dashboard', () => {
-    component.email = 'student@example.com';
-    component.password = 'secret';
-
-    const navigateSpy = vi.spyOn((component as any).router, 'navigate').mockReturnValue(Promise.resolve(true));
-
-    component.onSubmit();
-
-    expect(navigateSpy).toHaveBeenCalledWith(['/dashboard']);
-  });
-
-  it('should navigate admins to the admin dashboard', () => {
-    component.setRole('admin');
-    component.email = 'admin@example.com';
-    component.password = 'secret';
-
-    const navigateSpy = vi.spyOn((component as any).router, 'navigate').mockReturnValue(Promise.resolve(true));
-
-    component.onSubmit();
-
-    expect(navigateSpy).toHaveBeenCalledWith(['/admin-dashboard']);
+    expect(component.errorPopupMessage).toBe('Please enter your USLT credentials to continue.');
+    expect(component.showErrorPopup).toBe(true);
   });
 });

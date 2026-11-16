@@ -1,0 +1,487 @@
+<!-- Admin Account Management page -->
+<main class="w-full px-8 py-6 space-y-8">
+
+  <!-- Header -->
+  <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-2">
+      <h1 class="text-xl font-bold tracking-tight text-white">Account Manage</h1>
+      <p class="text-sm text-slate-300 mt-1">
+        View, add, and manage all registered accounts. Only admins can create accounts.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="toggleAddAccount()"
+      [ngClass]="showAddAccount() ? 'bg-[#1E3A5F] text-white' : 'bg-white text-[#1E3A5F]'"
+      class="font-semibold px-6 py-3 rounded-xl shadow-sm transition-all flex items-center gap-2 hover:opacity-90 border border-slate-200"
+    >
+      <svg *ngIf="!showAddAccount()" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <svg *ngIf="showAddAccount()" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      {{ showAddAccount() ? 'Hide' : 'Add' }} Account
+    </button>
+  </section>
+
+  <!-- Add Account Modal -->
+  <div *ngIf="showAddAccount()" class="fixed inset-0 z-50 flex items-center justify-center">
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+      (click)="toggleAddAccount()"
+    ></div>
+
+    <!-- Modal Card -->
+    <div class="relative w-full max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200/80 shadow-2xl p-8 sm:p-10 transform transition-all">
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h2 class="text-2xl font-bold text-[#1E3A5F]">Add New Account</h2>
+          <p class="text-xs text-slate-500 mt-1">Create a student or admin account.</p>
+        </div>
+        <button
+          type="button"
+          (click)="toggleAddAccount()"
+          class="text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <form (ngSubmit)="onAddAccountSubmit()" novalidate>
+        <!-- Account Role (slightly smaller width) -->
+        <section class="flex flex-col gap-2 mb-6 sm:mb-8 max-w-xs sm:max-w-sm">
+          <label class="text-sm font-semibold text-slate-700">Account Role</label>
+          <div class="relative rounded-xl border bg-slate-50 flex items-center w-full border-slate-200">
+            <button
+              type="button"
+              (click)="setAddRole('student')"
+              [ngStyle]="{
+                'background-color': addForm().role === 'student' ? '#1E3A5F' : '#f8fafc',
+                'color': addForm().role === 'student' ? '#ffffff' : '#6b7280',
+                'border-color': addForm().role === 'student' ? '#1e3a5f' : '#e2e8f0'
+              }"
+              [class.shadow-sm]="addForm().role === 'student'"
+              class="flex-1 pl-4 pr-4 py-3 text-sm font-bold transition-colors text-center border rounded-xl"
+            >
+              Student
+            </button>
+            <button
+              type="button"
+              (click)="setAddRole('admin')"
+              [ngStyle]="{
+                'background-color': addForm().role === 'admin' ? '#1E3A5F' : '#f8fafc',
+                'color': addForm().role === 'admin' ? '#ffffff' : '#6b7280',
+                'border-color': addForm().role === 'admin' ? '#1e3a5f' : '#e2e8f0'
+              }"
+              [class.shadow-sm]="addForm().role === 'admin'"
+              class="flex-1 pl-4 pr-4 py-3 text-sm font-bold transition-colors text-center border rounded-xl"
+            >
+              Admin
+            </button>
+          </div>
+        </section>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <!-- Full Name -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Full Name</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['fullName'] }">
+              <input
+                id="fullName"
+                type="text"
+                placeholder="Juan Dela Cruz"
+                [ngModel]="addForm().fullName"
+                (ngModelChange)="onFieldChange('fullName', $event)"
+                name="fullName"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['fullName']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['fullName'] }}</p>
+          </div>
+
+          <!-- ID Field -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">{{ addForm().role === 'admin' ? 'Staff ID' : 'Student ID' }}</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['studentId'] }">
+              <input
+                id="studentId"
+                type="text"
+                [placeholder]="addForm().role === 'admin' ? 'e.g. STF-001' : 'e.g. 2021-04892'"
+                [ngModel]="addForm().studentId"
+                (ngModelChange)="onFieldChange('studentId', $event)"
+                name="studentId"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['studentId']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['studentId'] }}</p>
+          </div>
+
+          <!-- Email -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Email Address</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['email'] }">
+              <input
+                id="email"
+                type="email"
+                placeholder="name@uslt.edu.ph"
+                [ngModel]="addForm().email"
+                (ngModelChange)="onFieldChange('email', $event)"
+                name="email"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['email']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['email'] }}</p>
+          </div>
+
+          <!-- Password -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Password</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['password'] }">
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                [ngModel]="addForm().password"
+                (ngModelChange)="onFieldChange('password', $event)"
+                name="password"
+                required
+                minlength="6"
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['password']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['password'] }}</p>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Confirm Password</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['confirmPassword'] }">
+              <input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                [ngModel]="addForm().confirmPassword"
+                (ngModelChange)="onFieldChange('confirmPassword', $event)"
+                name="confirmPassword"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['confirmPassword']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['confirmPassword'] }}</p>
+          </div>
+
+          <!-- Degree Program (student only) -->
+          <div *ngIf="addForm().role === 'student'" class="md:col-span-2 flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Degree Program</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['degreeProgram'] }">
+              <select
+                id="degreeProgram"
+                [ngModel]="addForm().degreeProgram"
+                (ngModelChange)="onFieldChange('degreeProgram', $event)"
+                name="degreeProgram"
+                required
+                class="w-full pl-4 pr-10 py-3.5 text-sm text-slate-900 outline-none bg-transparent border-none focus:ring-0 appearance-none"
+              >
+                <option value="">Select a degree program</option>
+                <option *ngFor="let program of availableDegreePrograms()" [value]="program">{{ program }}</option>
+              </select>
+            </div>
+            <p *ngIf="addErrors()['degreeProgram']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['degreeProgram'] }}</p>
+          </div>
+
+          <!-- Mobile Number -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Mobile Number</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['mobile'] }">
+              <input
+                id="mobile"
+                type="tel"
+                placeholder="+63 912 345 6789"
+                [ngModel]="addForm().mobile"
+                (ngModelChange)="onFieldChange('mobile', $event)"
+                name="mobile"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['mobile']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['mobile'] }}</p>
+          </div>
+
+          <!-- Error Message -->
+          <div *ngIf="addSubmitError()" class="md:col-span-2 bg-red-50 border-l-4 border-red-500 text-red-800 p-3 rounded-r text-sm">
+            {{ addSubmitError() }}
+          </div>
+
+          <!-- Submit Button -->
+          <div class="md:col-span-2 flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="submit"
+              [disabled]="isAddingAccount()"
+              [class.bg-[#162C49]]="isAddingAccount()"
+              class="flex-1 bg-[#1E3A5F] text-white font-semibold py-3.5 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span class="flex items-center justify-center gap-2">
+                Create Account
+                <svg *ngIf="isAddingAccount()" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Account Modal -->
+  <div *ngIf="showEditAccount()" class="fixed inset-0 z-50 flex items-center justify-center">
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+      (click)="closeEditAccount()"
+    ></div>
+
+    <!-- Modal Card -->
+    <div class="relative w-full max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200/80 shadow-2xl p-8 sm:p-10 transform transition-all">
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h2 class="text-2xl font-bold text-[#1E3A5F]">Edit Account</h2>
+          <p class="text-xs text-slate-500 mt-1">Update account details.</p>
+        </div>
+        <button
+          type="button"
+          (click)="closeEditAccount()"
+          class="text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <form (ngSubmit)="updateAccount()" novalidate>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <!-- Full Name -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Full Name</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': editErrors()['fullName'] }">
+              <input
+                id="editFullName"
+                type="text"
+                placeholder="Juan Dela Cruz"
+                [ngModel]="editForm().fullName"
+                (ngModelChange)="onEditFieldChange('fullName', $event)"
+                name="editFullName"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="editErrors()['fullName']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['fullName'] }}</p>
+          </div>
+
+          <!-- ID Field -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">{{ editForm().role === 'admin' ? 'Staff ID' : 'Student ID' }}</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': editErrors()['studentId'] }">
+              <input
+                id="editStudentId"
+                type="text"
+                [placeholder]="editForm().role === 'admin' ? 'e.g. STF-001' : 'e.g. 2021-04892'"
+                [ngModel]="editForm().studentId"
+                (ngModelChange)="onEditFieldChange('studentId', $event)"
+                name="editStudentId"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="editErrors()['studentId']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['studentId'] }}</p>
+          </div>
+
+          <!-- Email -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Email Address</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': editErrors()['email'] }">
+              <input
+                id="editEmail"
+                type="email"
+                placeholder="name@uslt.edu.ph"
+                [ngModel]="editForm().email"
+                (ngModelChange)="onEditFieldChange('email', $event)"
+                name="editEmail"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="editErrors()['email']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['email'] }}</p>
+          </div>
+
+          <!-- Mobile Number -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Mobile Number</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': editErrors()['mobile'] }">
+              <input
+                id="editMobile"
+                type="tel"
+                placeholder="+63 912 345 6789"
+                [ngModel]="editForm().mobile"
+                (ngModelChange)="onEditFieldChange('mobile', $event)"
+                name="editMobile"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="editErrors()['mobile']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['mobile'] }}</p>
+          </div>
+
+          <!-- Degree Program (student only) -->
+          <div *ngIf="editForm().role === 'student'" class="md:col-span-2 flex flex-col gap-2">
+            <label class="text-sm font-semibold text-slate-700">Degree Program</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': editErrors()['degreeProgram'] }">
+              <select
+                id="editDegreeProgram"
+                [ngModel]="editForm().degreeProgram"
+                (ngModelChange)="onEditFieldChange('degreeProgram', $event)"
+                name="editDegreeProgram"
+                required
+                class="w-full pl-4 pr-10 py-3.5 text-sm text-slate-900 outline-none bg-transparent border-none focus:ring-0 appearance-none"
+              >
+                <option value="">Select a degree program</option>
+                <option *ngFor="let program of availableDegreePrograms()" [value]="program">{{ program }}</option>
+              </select>
+            </div>
+            <p *ngIf="editErrors()['degreeProgram']" class="text-xs text-rose-600 mt-0.5">{{ editErrors()['degreeProgram'] }}</p>
+          </div>
+
+          <!-- Error Message -->
+          <div *ngIf="editSubmitError()" class="md:col-span-2 bg-red-50 border-l-4 border-red-500 text-red-800 p-3 rounded-r text-sm">
+            {{ editSubmitError() }}
+          </div>
+
+          <!-- Submit Button -->
+          <div class="md:col-span-2 flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="submit"
+              [disabled]="isUpdatingAccount()"
+              [class.bg-[#162C49]]="isUpdatingAccount()"
+              class="flex-1 bg-[#1E3A5F] text-white font-semibold py-3.5 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span class="flex items-center justify-center gap-2">
+                Save Changes
+                <svg *ngIf="isUpdatingAccount()" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error()" class="bg-red-50 border-l-4 border-red-500 text-red-800 p-3 rounded-r text-sm">
+    {{ error() }}
+  </div>
+
+  <!-- Search Bar -->
+  <div class="flex gap-3">
+    <div class="flex-1 max-w-md relative">
+      <input
+        type="text"
+        placeholder="Search by name, email, or ID…"
+        [(ngModel)]="searchQuery"
+        class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-2 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-all"
+      />
+      <svg class="w-4 h-4 text-slate-400 absolute right-3 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- Accounts Table -->
+  <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+    <div class="p-6">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+            <th class="px-6 py-3">Name</th>
+            <th class="px-6 py-3">Email</th>
+            <th class="px-6 py-3">ID</th>
+            <th class="px-6 py-3">Role</th>
+            <th class="px-6 py-3">Created</th>
+            <th class="px-6 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr *ngFor="let account of filteredAccounts(); trackBy: trackByAccount" class="hover:bg-slate-50/70">
+            <td class="px-6 py-4">
+              <div class="text-sm font-medium text-slate-900">{{ account.full_name }}</div>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-600">{{ account.email }}</td>
+            <td class="px-6 py-4 text-sm text-slate-600">
+              {{ account.role === 'admin' ? ('Staff ID: ' + account.student_id) : ('Student ID: ' + account.student_id) }}
+            </td>
+            <td class="px-6 py-4">
+              <span [ngClass]="roleBadgeClass(account.role)">{{ account.role }}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-500">{{ account.created_at | date:'shortDate' }}</td>
+            <td class="px-6 py-4 text-right">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="openEditAccount(account)"
+                  [disabled]="isUpdatingAccount()"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1E3A5F] text-white disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  (click)="deleteAccount(account)"
+                  [disabled]="isDeleting() === account.id || isUpdatingAccount()"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span *ngIf="isDeleting() !== account.id">Delete</span>
+                  <span *ngIf="isDeleting() === account.id">Deleting…</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredAccounts().length === 0" class="bg-slate-50">
+            <td colspan="6" class="px-6 py-8 text-center">
+              <p class="text-sm text-slate-500">{{ searchQuery().trim() ? 'No matching accounts found.' : 'No accounts found.' }}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>

@@ -49,7 +49,7 @@ import { AuthService, RegisterFormData } from '../auth/auth.service';
             </p>
           </div>
 
-          <form (ngSubmit)="onSubmit()" class="flex flex-col gap-4" novalidate>
+          <form class="flex flex-col gap-4" novalidate>
 
             <!-- Full Name -->
             <div class="flex flex-col gap-2">
@@ -207,14 +207,16 @@ import { AuthService, RegisterFormData } from '../auth/auth.service';
 
             <!-- Submit Button -->
             <button
-              type="submit"
-              [disabled]="isLoading"
-              class="bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white font-semibold py-3.5 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              type="button"
+              (click)="onSubmit()"
+              [disabled]="isLoading()"
+              [class.bg-[#162C49]]="isLoading()"
+              class="bg-[#1E3A5F] text-white font-semibold py-3.5 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span *ngIf="!isLoading" class="flex items-center justify-center gap-2">
+              <span *ngIf="!isLoading()" class="flex items-center justify-center gap-2">
                 Create Account
               </span>
-              <span *ngIf="isLoading" class="flex items-center justify-center gap-2">
+              <span *ngIf="isLoading()" class="flex items-center justify-center gap-2">
                 <svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -233,6 +235,9 @@ export class RegisterComponent implements OnInit {
   readonly availableDegreePrograms = signal<string[]>([]);
 
   async ngOnInit(): Promise<void> {
+    // Safety: explicitly reset loading state on component load so the
+    // submit button is never stuck disabled/spinning from a prior session.
+    this.isLoading.set(false);
     await this.loadDegreePrograms();
   }
 
@@ -262,6 +267,7 @@ export class RegisterComponent implements OnInit {
     confirmPassword: '',
     degreeProgram: '',
     mobile: '',
+    role: 'student',
   };
 
   errors: {
@@ -274,7 +280,7 @@ export class RegisterComponent implements OnInit {
     mobile?: string;
   } = {};
   submitError = '';
-  isLoading = false;
+  isLoading = signal(false);
 
   constructor(
     private readonly authService: AuthService,
@@ -282,6 +288,9 @@ export class RegisterComponent implements OnInit {
   ) {}
 
   async onSubmit(): Promise<void> {
+    // Safety: reset loading state first in case it's stuck from a previous attempt.
+    this.isLoading.set(false);
+
     this.errors = {};
     this.submitError = '';
 
@@ -335,7 +344,7 @@ export class RegisterComponent implements OnInit {
     if (!valid) return;
 
     // --- Call Supabase ---
-    this.isLoading = true;
+    this.isLoading.set(true);
     try {
       const result = await this.authService.register({
         fullName: this.form.fullName.trim(),
@@ -345,6 +354,7 @@ export class RegisterComponent implements OnInit {
         confirmPassword: this.form.confirmPassword,
         degreeProgram: this.form.degreeProgram,
         mobile: this.form.mobile.trim(),
+        role: 'student',
       });
 
       if (!result.success) {
@@ -358,7 +368,7 @@ export class RegisterComponent implements OnInit {
         }
       }
     } finally {
-      this.isLoading = false;
+      this.isLoading.set(false);
     }
   }
 }

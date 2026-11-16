@@ -10,6 +10,7 @@ export interface RegisterFormData {
   confirmPassword: string;
   degreeProgram: string;
   mobile: string;
+  role: 'student' | 'admin';
 }
 
 export interface RegisterResult {
@@ -32,7 +33,7 @@ export class AuthService {
             full_name: data.fullName,
             student_id: data.studentId,
             degree_program: data.degreeProgram,
-            role: 'student',
+            role: data.role,
           },
         },
       });
@@ -53,6 +54,8 @@ export class AuthService {
       });
 
       if (signInError) {
+        // Clean up the orphan auth user so it doesn't block retries with the same email
+        await supabase.auth.signOut();
         return { success: false, error: signInError.message };
       }
 
@@ -79,7 +82,7 @@ export class AuthService {
         department_abbreviation: departmentAbbreviation,
         practicum_hours: practicumHours,
         mobile: data.mobile,
-        role: 'student',
+        role: data.role,
       });
 
       if (profileError) {
@@ -88,8 +91,7 @@ export class AuthService {
         return { success: false, error: profileError.message };
       }
 
-      // 3. Success → redirect to student dashboard
-      void this.router.navigate(['/dashboard']);
+      // Success. The caller decides where to redirect.
       return { success: true };
     } catch (err) {
       return {

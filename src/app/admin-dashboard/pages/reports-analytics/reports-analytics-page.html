@@ -1,0 +1,267 @@
+<!-- Admin Reports & Analytics page (read-only analytics, no CRUD actions) -->
+<main class="w-full px-8 py-6 space-y-8">
+
+  <!-- Header -->
+  <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-2">
+      <h1 class="text-xl font-extrabold tracking-tight text-white">Reports &amp; Analytics</h1>
+      <p class="text-xs text-slate-300 mt-1">
+        Read-only snapshot of application volume, company activity, student breakdown, and document verification.
+      </p>
+      <p *ngIf="error()" class="text-xs text-red-100 mt-2">{{ error() }}</p>
+    </div>
+
+    <!-- Date range selector -->
+    <div class="flex flex-wrap items-center gap-3">
+      <label class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Range</label>
+      <button
+        *ngFor="let p of datePresets"
+        (click)="setDateRange(p.key)"
+        [ngClass]="{
+          'bg-white text-[#1E3A5F]': dateRange() === p.key,
+          'bg-slate-700/30 text-white': dateRange() !== p.key
+        }"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+      >
+        {{ p.label }}
+      </button>
+      <button
+        *ngIf="dateRange() === 'custom'"
+        (click)="dateRange.set('all')"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700/30 text-white transition-colors"
+      >
+        All Time
+      </button>
+
+      <div *ngIf="dateRange() === 'custom'" class="flex items-center gap-2">
+        <label class="text-xs font-semibold text-slate-200">From</label>
+        <input
+          type="date"
+          [(ngModel)]="customFrom"
+          class="text-xs bg-slate-700/30 border border-slate-500 rounded px-2 py-1 text-white focus:ring-2 focus-ring-[#1E3A5F] outline-none"
+        />
+        <label class="text-xs font-semibold text-slate-200">To</label>
+        <input
+          type="date"
+          [(ngModel)]="customTo"
+          class="text-xs bg-slate-700/30 border border-slate-500 rounded px-2 py-1 text-white focus:ring-2 focus-ring-[#1E3A5F] outline-none"
+        />
+        <button
+          (click)="dateRange.set('custom')"
+          class="px-2 py-1.5 rounded text-xs font-medium bg-[#1E3A5F] text-white"
+        >
+          Apply
+        </button>
+      </div>
+
+      <button
+        type="button"
+        (click)="exportCSV()"
+        class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white text-[#1E3A5F] font-semibold text-xs hover:bg-slate-100 transition-colors"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M7 10l5 5M7 10l5-5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M12 15V3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Export CSV
+      </button>
+    </div>
+  </section>
+
+  <!-- Loading -->
+  <div *ngIf="loading()" class="text-center py-12">
+    <p class="text-sm text-slate-500">Loading analytics…</p>
+  </div>
+
+  <!-- Stat cards -->
+  <section *ngIf="!loading()" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div
+      *ngFor="let card of statCards(); trackBy: trackByStat"
+      class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col"
+    >
+      <div class="flex justify-between items-start mb-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center" [ngClass]="statIconBg(card.tone)">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" [ngClass]="statIconColor(card.tone)">
+            <ng-container *ngIf="card.icon === 'users'"><circle cx="12" cy="5" r="2"/><path d="M6 12a6 6 0 1112 0 6 6 0 01-12 0z"/></ng-container>
+            <ng-container *ngIf="card.icon === 'clock'"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></ng-container>
+            <ng-container *ngIf="card.icon === 'check'"><polyline points="20 6 9 17 4 12"/></ng-container>
+            <ng-container *ngIf="card.icon === 'building'"><path d="M1 3h22v16a2 2 0 01-2 2H3a2 2 0 01-2-2V3z"/></ng-container>
+            <ng-container *ngIf="card.icon === 'file-text'"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13h-3"/><path d="M16 17H9"/></ng-container>
+          </svg>
+        </div>
+        <div
+          class="w-2 h-2 rounded-full"
+          [ngClass]="{ 'bg-emerald-500': card.deltaUp === true, 'bg-rose-500': card.deltaUp === false }"
+        ></div>
+      </div>
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ card.label }}</p>
+      <p class="text-2xl font-bold text-slate-900 mb-1">{{ card.value }}</p>
+      <p class="text-xs font-medium" [ngClass]="card.deltaUp === true ? 'text-emerald-600' : 'text-rose-600'">
+        {{ card.delta === '—' ? 'No prior data' : card.delta !== null ? card.delta + ' vs prev.' : '—' }}
+      </p>
+    </div>
+  </section>
+
+  <!-- Insight -->
+  <section *ngIf="!loading()" class="bg-slate-50 border-l-4 border-[#1E3A5F] text-slate-800 p-4 rounded-r text-sm">
+    {{ insight() }}
+  </section>
+
+  <!-- Charts row -->
+  <section *ngIf="!loading()" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Status donut -->
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col">
+      <h3 class="text-base font-bold text-slate-900 mb-4">Applications by Status</h3>
+      <div class="flex flex-col md:flex-row items-center gap-8">
+        <div class="w-32 h-32 md:w-40 md:h-40 relative mx-auto md:mx-0">
+          <svg class="w-full h-full transform -rotate-90" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#e2e8f0" stroke-width="8" />
+            <circle
+              *ngFor="let seg of donutSegments()"
+              cx="24" cy="24" r="20"
+              fill="none"
+              [attr.stroke]="donutColor(seg.status)"
+              stroke-width="8"
+              [attr.stroke-dasharray]="seg.pct * 3.7699 + ' ' + (100 - seg.pct) * 3.7699"
+              stroke-linecap="round"
+              [class.transition-all]="true"
+            />
+          </svg>
+        </div>
+        <div class="flex flex-col gap-2 flex-1">
+          <div
+            *ngFor="let seg of donutSegments()"
+            class="flex items-center gap-2 text-sm"
+          >
+            <span class="w-3 h-3 rounded-full" [ngClass]="donutColorClass(seg.status)"></span>
+            <span class="font-medium text-slate-700">{{ statusLabel(seg.status) }}</span>
+            <span class="ml-auto font-bold text-slate-900">{{ seg.value }}</span>
+            <span class="text-slate-500">{{ seg.pct }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly bar chart -->
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col">
+      <h3 class="text-base font-bold text-slate-900 mb-4">Monthly Applications</h3>
+      <div class="flex items-end gap-2 h-40 w-full">
+        <div *ngFor="let m of monthlyChart()" class="flex-1 flex flex-col items-center gap-1">
+          <div
+            class="w-full bg-[#1E3A5F] rounded-t"
+            [style.height.%]="monthlyMax() > 0 ? (m.value / monthlyMax()) * 100 : 0"
+          ></div>
+          <span class="text-xs text-slate-500">{{ m.label }}</span>
+          <span class="text-xs font-bold text-slate-900">{{ m.value }}</span>
+        </div>
+        <div *ngIf="monthlyMax() === 0" class="flex-1 flex items-center justify-center h-full text-slate-400 text-xs">
+          No data
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Top companies & degree programs -->
+  <section *ngIf="!loading()" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Top companies horizontal bar -->
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <h3 class="text-base font-bold text-slate-900 mb-4">Top Companies by Applications</h3>
+      <div class="space-y-3" *ngIf="companyChart().length > 0; else noCompanies">
+        <div *ngFor="let c of companyChart(); let i = index" class="flex items-center gap-3">
+          <span class="w-10 text-xs font-medium text-slate-600 text-right">{{ c.name }}</span>
+          <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
+            <div
+              class="bg-[#1E3A5F] h-full rounded-full"
+              [style.width.%]="companyMax() > 0 ? (c.value / companyMax()) * 100 : 0"
+            ></div>
+          </div>
+          <span class="w-8 text-xs font-bold text-slate-900">{{ c.value }}</span>
+        </div>
+      </div>
+      <ng-template #noCompanies>
+        <p class="text-xs text-slate-400 italic">No company data.</p>
+      </ng-template>
+    </div>
+
+    <!-- Students by degree -->
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <h3 class="text-base font-bold text-slate-900 mb-4">Students by Degree Program</h3>
+      <div class="space-y-3" *ngIf="degreeChart().length > 0; else noDegrees">
+        <div *ngFor="let d of degreeChart()" class="flex items-center gap-3">
+          <span class="w-20 text-xs font-medium text-slate-600">{{ d.name }}</span>
+          <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
+            <div
+              class="bg-[#1E3A5F] h-full rounded-full"
+              [style.width.%]="degreeMax() > 0 ? (d.value / degreeMax()) * 100 : 0"
+            ></div>
+          </div>
+          <span class="w-8 text-xs font-bold text-slate-900">{{ d.value }}</span>
+        </div>
+      </div>
+      <ng-template #noDegrees>
+        <p class="text-xs text-slate-400 italic">No degree data.</p>
+      </ng-template>
+    </div>
+  </section>
+
+  <!-- Document verification -->
+  <section *ngIf="!loading()" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <h3 class="text-base font-bold text-slate-900 mb-4">Document Verification Status</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div *ngFor="let s of docStatusTypes()" class="bg-slate-50 rounded-xl p-4 text-center">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ statusLabel(s) }}</p>
+        <p class="text-2xl font-bold text-slate-900">{{ (docStatusCounts()[s] || 0) }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data table -->
+  <section *ngIf="!loading()" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+      <h3 class="text-base font-bold text-slate-900">Application Records</h3>
+      <span class="text-xs font-medium text-slate-500">{{ filteredApps().length }} records</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Reference</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Student</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Company</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Position</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Date</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          <tr *ngFor="let a of filteredApps(); trackBy: trackByApp" class="hover:bg-slate-50/70">
+            <td class="px-6 py-4 text-sm text-slate-900 font-medium">{{ a.reference_number || '—' }}</td>
+            <td class="px-6 py-4 text-sm text-slate-600">{{ a.student_name || '—' }}</td>
+            <td class="px-6 py-4 text-sm text-slate-600">{{ a.host_company || '—' }}</td>
+            <td class="px-6 py-4 text-sm text-slate-600">{{ a.position_role || '—' }}</td>
+            <td class="px-6 py-4">
+              <span
+                class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border"
+                [ngClass]="statusTone(a.status)"
+              >
+                {{ statusLabel(a.status) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-500 text-right">
+              {{ a.submitted_at ? (a.submitted_at | date:'shortDate') : '—' }}
+            </td>
+          </tr>
+          <tr *ngIf="filteredApps().length === 0">
+            <td colspan="6" class="px-6 py-8 text-center text-sm text-slate-500">
+              No applications found for the selected range.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>

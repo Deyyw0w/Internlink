@@ -64,27 +64,22 @@ export class AdminNavbarComponent implements OnInit, OnDestroy {
     this.isProfileMenuOpen = false;
   }
 
-  signOut(): void {
+  async signOut(): Promise<void> {
     this.closeProfileMenu();
 
     // Clear shared profile state immediately so the UI updates on the first click
     this.profileService.profile.set(null);
     this.profileService.loading.set(false);
 
-    // Defer signout + navigation so they run outside Angular's component
-    // destruction cycle (leaving the Dashboard component tree).
-    setTimeout(() => {
-      supabase.auth.signOut().then((result) => {
-        console.log('[AdminNavbar] Supabase signOut result:', result.error ? result.error.message : 'OK');
-      }).catch((err) => {
-        console.error('[AdminNavbar] Supabase signOut exception:', err);
-      });
+    // Sign out FIRST, then navigate. Navigating before signOut completes lets
+    // the login guard (requireGuest) see an active session and bounce the user
+    // back to the dashboard, which is why sign out appeared to do nothing
+    // until the next click.
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('[AdminNavbar] Supabase signOut error:', error);
+    }
 
-      this.router.navigate(['/login']).then((success) => {
-        console.log('[AdminNavbar] Router navigate to /login success:', success);
-      }).catch((err) => {
-        console.error('[AdminNavbar] Router navigate to /login failed:', err);
-      });
-    }, 50);
+    await this.router.navigate(['/login']);
   }
 }

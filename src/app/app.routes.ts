@@ -6,7 +6,6 @@ import { Dashboard } from './dashboard/dashboard';
 import { DocumentChecklistPageComponent as AdminDocumentChecklistPageComponent } from './admin-dashboard/pages/document-checklist/document-checklist-page';
 import { FormsTemplatesPageComponent } from './admin-dashboard/pages/forms-templates/forms-templates-page';
 import { Login } from './login/login';
-import { RegisterComponent } from './register/register.component';
 import { NotificationLogsPageComponent } from './admin-dashboard/pages/notification-logs/notification-logs-page';
 import { PartnerAgenciesPageComponent } from './admin-dashboard/pages/partner-agencies/partner-agencies-page';
 import { DashboardPageComponent } from './dashboard/pages/dashboard/dashboard-page';
@@ -19,12 +18,13 @@ import { ReportsAnalyticsPageComponent } from './admin-dashboard/pages/reports-a
 import { AdminAccountSettingsPageComponent } from './admin-dashboard/pages/account-settings/account-settings-page';
 import { StudentApplicantsPageComponent } from './admin-dashboard/pages/student-applicants/student-applicants-page';
 import { AdminDashboardPageComponent } from './admin-dashboard/pages/dashboard/dashboard-page';
+import { AccountsManagementPageComponent } from './admin-dashboard/pages/accounts-management/accounts-management-page';
+import { requireAuth, requireGuest, requireRole } from './auth/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: 'login', component: Login },
-  { path: 'register', component: RegisterComponent },
-  { path: 'dashboard', component: Dashboard, children: [
+  { path: 'login', component: Login, canActivate: [requireGuest] },
+  { path: 'dashboard', component: Dashboard, canActivate: [requireAuth, requireRole(['student'])], children: [
     { path: '', redirectTo: 'overview', pathMatch: 'full' },
     { path: 'overview', component: DashboardPageComponent },
     { path: 'internship-postings', component: InternshipPostingsPageComponent },
@@ -37,6 +37,7 @@ export const routes: Routes = [
   {
     path: 'admin-dashboard',
     component: AdminDashboardComponent,
+    canActivate: [requireAuth, requireRole(['admin'])],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: AdminDashboardPageComponent },
@@ -48,6 +49,7 @@ export const routes: Routes = [
       { path: 'reports-analytics', component: ReportsAnalyticsPageComponent },
       { path: 'notification-logs', component: NotificationLogsPageComponent },
       { path: 'account-settings', component: AdminAccountSettingsPageComponent },
+      { path: 'accounts-management', component: AccountsManagementPageComponent, canActivate: [requireAuth, requireRole(['admin'])] },
     ],
   },
   { path: '**', redirectTo: 'login' },

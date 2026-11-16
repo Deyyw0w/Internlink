@@ -24,6 +24,7 @@ export class AdminSidebarComponent {
     { label: 'Forms & Templates', route: '/admin-dashboard/forms-templates', icon: 'file-text' },
     { label: 'Reports & Analytics', route: '/admin-dashboard/reports-analytics', icon: 'chart' },
     { label: 'Notification Logs', route: '/admin-dashboard/notification-logs', icon: 'bell' },
+    { label: 'Account Manage', route: '/admin-dashboard/accounts-management', icon: 'users' },
     { label: 'Account Settings', route: '/admin-dashboard/account-settings', icon: 'admin-panel-settings' },
   ];
 

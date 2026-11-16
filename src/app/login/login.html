@@ -24,7 +24,7 @@
   <main class="min-h-[calc(100vh-5rem)] w-full flex items-center justify-center py-12 px-6 lg:px-12">
     <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
 
-      <!-- Left Column -->
+      <!-- Left Column: branding only -->
       <div class="lg:col-span-5 flex flex-col justify-center space-y-8">
         <div>
           <h1 class="text-3xl sm:text-4xl font-bold text-[#1E3A5F] leading-tight">
@@ -35,56 +35,18 @@
             <span class="block">&#8226; Internship Management System</span>
           </p>
         </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Student Portal Card -->
-          <button
-            type="button"
-            (click)="setRole('student')"
-            class="rounded-2xl p-6 text-center cursor-pointer {{ selectedRole === 'student' ? 'bg-white border-2 border-[#1E3A5F] shadow-md' : 'bg-white border border-slate-200 shadow-sm hover:border-[#1E3A5F]/40 transition-all' }}"
-          >
-            <div class="w-12 h-12 rounded-full bg-[#1E3A5F]/10 text-[#1E3A5F] mx-auto flex items-center justify-center mb-3">
-              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                <path d="M6 12v5c3 3 9 3 12 0v-5" />
-              </svg>
-            </div>
-            <h3 class="font-bold text-slate-900 mb-1">Student Portal</h3>
-            <p class="text-xs text-slate-500 leading-tight">Requirements tracking &amp; HTE applications</p>
-          </button>
-
-          <!-- GLOCAL Admin Card -->
-          <button
-            type="button"
-            (click)="setRole('admin')"
-            class="rounded-2xl p-6 text-center cursor-pointer {{ selectedRole === 'admin' ? 'bg-white border-2 border-[#1E3A5F] shadow-md' : 'bg-white border border-slate-200 shadow-sm hover:border-[#1E3A5F]/40 transition-all' }}"
-          >
-            <div class="w-12 h-12 rounded-full bg-[#1E3A5F]/10 text-[#1E3A5F] mx-auto flex items-center justify-center mb-3">
-              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
-            </div>
-            <h3 class="font-bold text-slate-900 mb-1">GLOCAL Admin</h3>
-            <p class="text-xs text-slate-500 leading-tight">Manage MOAs, students &amp; endorsements</p>
-          </button>
-        </div>
       </div>
 
-      <!-- Right Column -->
+      <!-- Right Column: sign-in form -->
       <div class="lg:col-span-7 flex justify-center lg:justify-end">
         <div class="w-full max-w-lg bg-white rounded-3xl border border-slate-200/80 shadow-xl p-8 sm:p-10 space-y-6">
-          <h2 class="text-2xl font-bold text-[#1E3A5F]">
-            Sign in as {{ selectedRole === 'student' ? 'Student' : 'Admin' }}
-          </h2>
+          <h2 class="text-2xl font-bold text-[#1E3A5F]">Sign In</h2>
 
           <form (ngSubmit)="onSubmit()" class="flex flex-col gap-4" novalidate>
 
-            <!-- Email / Student ID Field -->
+            <!-- Email Field -->
             <div class="flex flex-col gap-2">
-              <label for="email" class="text-sm font-semibold text-slate-700">
-                {{ selectedRole === 'student' ? 'Student Email / ID' : 'Admin / Staff Email' }}
-              </label>
+              <label for="email" class="text-sm font-semibold text-slate-700">Email Address</label>
               <div class="relative rounded-xl border border-slate-200 bg-slate-100/80 flex items-center">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center w-5 h-5 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2 .9-2 2V6c0-1.1.9-2 2-2z" />
@@ -93,7 +55,7 @@
                 <input
                   id="email"
                   type="email"
-                  [placeholder]="selectedRole === 'student' ? 'Email' : 'admin@usl.edu.ph'"
+                  placeholder="name@uslt.edu.ph"
                   [(ngModel)]="email"
                   name="email"
                   required
@@ -141,22 +103,10 @@
                   Signing in...
                 </span>
               </button>
-              <span class="text-xs text-slate-400 font-medium">or</span>
-              <button
-                type="button"
-                class="flex-1 border border-[#1E3A5F] text-[#1E3A5F] hover:bg-slate-50 font-semibold py-3.5 rounded-xl transition-all"
-                (click)="openRegisterModal()"
-              >
-                Register
-              </button>
             </div>
+
           </form>
         </div>
-      </div>
-
-      <!-- Register Modal -->
-      <div *ngIf="isRegisterModalOpen">
-        <app-register-modal (close)="closeRegisterModal()"></app-register-modal>
       </div>
 
       <!-- Error Popup Notification -->
