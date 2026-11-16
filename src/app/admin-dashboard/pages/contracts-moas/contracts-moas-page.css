@@ -1,1 +1,10 @@
 /* Contracts & MOAs page — category management + contract uploads */
+
+/* Upload Contract modal — hide scrollbar but keep it scrollable */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

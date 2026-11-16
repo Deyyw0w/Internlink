@@ -75,7 +75,7 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
         (c.description || '').toLowerCase().includes(q) ||
         (c.company_name || '').toLowerCase().includes(q);
       const matchCategory = !cat || c.category_id === cat;
-      const matchStatus = !status || c.status === status;
+      const matchStatus = !status || this.contractStatus(c.end_date, c.status) === status;
       return matchSearch && matchCategory && matchStatus;
     });
   });
