@@ -115,8 +115,10 @@
             <tr *ngFor="let agency of filteredAgencies; trackBy: trackByAgency" class="hover:bg-slate-50 transition-colors">
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-[#1E3A5F] font-bold text-sm">
-                    {{ agency.initials }}
+                  <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-[#1E3A5F]">
+                    <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" aria-hidden="true">
+                      <path d="M2.5 12.5h19m-17 0v9m9.5-9v9h5.5v-9M6.939 7.561l2.5-2.5a1.5 1.5 0 0 1 2.122 0l2.5 2.5a1.5 1.5 0 0 1 .439 1.06V11a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 11V8.621a1.5 1.5 0 0 1 .439-1.06M14 16.75h5.5"/>
+                    </svg>
                   </div>
                   <div>
                     <div class="font-semibold text-slate-900">{{ agency.name }}</div>
