@@ -1,7 +1,6 @@
 import { ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { supabase } from '../../../../environments/supabase.config';
 import { ProfileService } from '../../../auth/profile.service';
 
@@ -22,7 +21,7 @@ interface PasswordChangeForm {
 @Component({
   selector: 'app-admin-account-settings-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './account-settings-page.html',
   styleUrl: './account-settings-page.css'
 })
