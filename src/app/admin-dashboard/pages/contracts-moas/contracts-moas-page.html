@@ -284,11 +284,17 @@
 </main>
 
 
-<!-- ========================================================================
-    Upload Contract Modal (category first, then upload)
-   ======================================================================== -->
-<div *ngIf="showUploadModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" (click)="closeUploadModal()">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200" (click)="$event.stopPropagation()">
+<!-- Upload Contract Modal -->
+<div
+  *ngIf="showUploadModal()"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+  (click)="closeUploadModal()"
+>
+  <div
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 max-h-[90vh] overflow-y-auto"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
     <div class="p-6 border-b border-slate-200 flex justify-between items-start">
       <div>
         <h2 class="text-lg font-bold text-slate-900">Upload Contract</h2>
@@ -296,38 +302,70 @@
           Step 1: choose a category, then fill in the contract details and upload the file.
         </p>
       </div>
+
       <button
         type="button"
         (click)="closeUploadModal()"
-        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        [disabled]="isUploadingContract()"
+        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
       </button>
     </div>
 
-    <div class="p-6 space-y-5">
-      <form (ngSubmit)="saveUploadContract()" novalidate>
+    <!-- Form -->
+    <div class="p-6">
+      <form (ngSubmit)="saveUploadContract()" novalidate class="space-y-5">
 
-        <!-- Category (chosen first, required) -->
+        <!-- Category -->
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Category <span class="text-rose-500">*</span></label>
-          <div class="relative rounded-xl border border-slate-200 bg-slate-50"
-               [ngClass]="{ 'border-rose-500': uploadSubmitError() && !uploadForm.category_id }">
-            <select
-              [ngModel]="uploadForm.category_id"
-              (ngModelChange)="uploadForm.category_id = $event"
-              class="w-full pl-4 pr-10 py-3 text-sm text-slate-900 border-none outline-none focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent transition-colors cursor-pointer"
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Category <span class="text-rose-500">*</span>
+          </label>
+
+          <select
+            [ngModel]="uploadForm.category_id"
+            (ngModelChange)="uploadForm.category_id = $event"
+            name="category_id"
+            required
+            [ngClass]="{
+              'border-rose-500': uploadSubmitError() && !uploadForm.category_id
+            }"
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors cursor-pointer"
+          >
+            <option value="" disabled>Select a category...</option>
+
+            <option
+              *ngFor="let cat of activeCategories()"
+              [value]="cat.id"
             >
-              <option value="" disabled selected class="text-slate-400">Select a category…</option>
-              <option *ngFor="let cat of activeCategories()" [value]="cat.id">{{ cat.name }}</option>
-            </select>
-          </div>
-          <p *ngIf="uploadSubmitError() && !uploadForm.category_id" class="text-xs text-rose-600 mt-0.5">A category is required before uploading.</p>
+              {{ cat.name }}
+            </option>
+          </select>
+
+          <p
+            *ngIf="uploadSubmitError() && !uploadForm.category_id"
+            class="text-xs text-rose-500"
+          >
+            Category is required before uploading.
+          </p>
         </div>
 
         <!-- Title -->
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Title <span class="text-rose-500">*</span></label>
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Title <span class="text-rose-500">*</span>
+          </label>
+
           <input
             type="text"
             [ngModel]="uploadForm.title"
@@ -341,20 +379,26 @@
 
         <!-- Description -->
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Description</label>
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Description
+          </label>
+
           <textarea
             [ngModel]="uploadForm.description"
             (ngModelChange)="uploadForm.description = $event"
             name="description"
             rows="2"
             placeholder="What is this contract about?"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors"
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors resize-none"
           ></textarea>
         </div>
 
-        <!-- Contract type -->
+        <!-- Contract Type -->
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Contract Type</label>
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Contract Type
+          </label>
+
           <select
             [ngModel]="uploadForm.contract_type"
             (ngModelChange)="uploadForm.contract_type = $event"
@@ -369,22 +413,36 @@
 
         <!-- Company -->
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Company (optional)</label>
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Company (optional)
+          </label>
+
           <select
             [ngModel]="uploadForm.company_id"
             (ngModelChange)="uploadForm.company_id = $event"
             name="company_id"
             class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors cursor-pointer"
           >
-            <option value="" disabled selected class="text-slate-400">Select a company…</option>
-            <option *ngFor="let co of companies()" [value]="co.id">{{ co.name }}</option>
+            <option value="">Select a company...</option>
+
+            <option
+              *ngFor="let co of companies()"
+              [value]="co.id"
+            >
+              {{ co.name }}
+            </option>
           </select>
         </div>
 
         <!-- Dates -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <!-- Start Date -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Start Date</label>
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Start Date
+            </label>
+
             <input
               type="date"
               [ngModel]="uploadForm.start_date"
@@ -393,8 +451,13 @@
               class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors"
             />
           </div>
+
+          <!-- End Date -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">End Date</label>
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+              End Date
+            </label>
+
             <input
               type="date"
               [ngModel]="uploadForm.end_date"
@@ -403,11 +466,15 @@
               class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors"
             />
           </div>
+
         </div>
 
         <!-- Status -->
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Status
+          </label>
+
           <select
             [ngModel]="uploadForm.status"
             (ngModelChange)="uploadForm.status = $event"
@@ -420,35 +487,86 @@
           </select>
         </div>
 
-        <!-- File Upload (required) -->
+        <!-- File Upload -->
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Contract File <span class="text-rose-500">*</span></label>
-          <div class="relative rounded-xl border border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-between p-4 cursor-pointer group hover:border-blue-400/50 transition-colors">
-            <label for="contract-upload-file" class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer z-10">
-              <svg class="w-6 h-6 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Choose PDF, DOCX, or image
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Contract File <span class="text-rose-500">*</span>
+          </label>
+
+          <div class="relative rounded-xl border border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-center p-5 hover:border-blue-400 transition-colors group">
+
+            <label
+              for="contract-upload-file"
+              class="w-full flex flex-col items-center justify-center gap-2 text-sm font-medium text-slate-700 cursor-pointer"
+            >
+              <svg
+                class="w-7 h-7 text-slate-400 group-hover:text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+
+              <span>Choose PDF, DOCX, or image</span>
+              <span class="text-xs text-slate-400">
+                PDF, DOC, DOCX, JPG, JPEG, PNG
+              </span>
             </label>
+
             <input
               id="contract-upload-file"
               type="file"
               (change)="onUploadFile($event)"
-              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              [disabled]="isUploadingContract()"
             />
           </div>
-          <div *ngIf="uploadForm.fileName" class="flex items-center gap-2 px-3 py-1 mt-1">
-            <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="3"/></svg>
-            <span class="text-xs text-slate-600 truncate max-w-xs" [title]="uploadForm.fileName">{{ uploadForm.fileName }}</span>
+
+          <!-- Selected File -->
+          <div
+            *ngIf="uploadForm.fileName"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 border border-slate-200"
+          >
+            <svg
+              class="w-4 h-4 text-slate-400 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+            </svg>
+
+            <span
+              class="text-xs text-slate-600 truncate"
+              [title]="uploadForm.fileName"
+            >
+              {{ uploadForm.fileName }}
+            </span>
           </div>
         </div>
 
-        <!-- Errors -->
-        <div *ngIf="uploadSubmitError()" class="bg-rose-50 border-l-4 border-rose-500 text-rose-800 p-3 rounded-r text-sm">
+        <!-- Error Message -->
+        <div
+          *ngIf="uploadSubmitError()"
+          class="bg-rose-50 border-l-4 border-rose-500 text-rose-800 p-3 rounded-r text-sm"
+        >
           {{ uploadSubmitError() }}
         </div>
 
-        <!-- Buttons -->
+        <!-- Action Buttons -->
         <div class="flex gap-3 pt-5 border-t border-slate-100">
+
+          <!-- Cancel -->
           <button
             type="button"
             (click)="closeUploadModal()"
@@ -457,19 +575,39 @@
           >
             Cancel
           </button>
+
+          <!-- Upload Contract -->
           <button
             type="submit"
             [disabled]="isUploadingContract()"
-            class="flex-1 bg-[#1E3A5F] [&:hover:not([disabled])]:bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            class="flex-1 bg-[#1E3A5F] hover:bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            <span *ngIf="!isUploadingContract()" class="flex items-center justify-center gap-2">
+            <span
+              *ngIf="!isUploadingContract()"
+              class="flex items-center justify-center gap-2"
+            >
               Upload Contract
             </span>
-            <span *ngIf="isUploadingContract()" class="flex items-center justify-center gap-2">
-              <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-              Uploading…
+
+            <span
+              *ngIf="isUploadingContract()"
+              class="flex items-center justify-center gap-2"
+            >
+              <svg
+                class="w-4 h-4 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" opacity="0.25"/>
+                <path d="M12 2a10 10 0 0 1 10 10"/>
+              </svg>
+
+              Uploading...
             </span>
           </button>
+
         </div>
 
       </form>
