@@ -53,3 +53,6 @@ Thumbs.db
 # Logs
 *.log
 devserver.log
+
+# Claude Code project files
+.claude/
