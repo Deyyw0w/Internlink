@@ -37,7 +37,7 @@ export interface AppHistoryEntry {
         <div class="lg:col-span-8 space-y-6">
 
           <!-- 1. Application Header -->
-          <section class="bg-[#1E3A5F] rounded-2xl p-6 shadow-sm">
+          <section class="bg-[#1E3A5F] border-l-4 border-amber-500 rounded-2xl p-6 shadow-sm">
             <div class="flex justify-between items-start gap-4 mb-4">
               <div class="flex-1">
                 <p class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1">Internship Application</p>

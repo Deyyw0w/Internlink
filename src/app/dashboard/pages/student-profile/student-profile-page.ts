@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
@@ -13,7 +13,7 @@ import { ProfileService } from '../../../auth/profile.service';
     <main class="w-full px-8 py-6 space-y-6">
 
       <!-- Profile Header Banner -->
-      <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
 
         <div class="flex flex-col gap-2">
           <div class="flex items-center gap-3">
@@ -28,7 +28,6 @@ import { ProfileService } from '../../../auth/profile.service';
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Enrolled for Practicum
                 </span>
                 <span class="border-r border-slate-700 pr-3">{{ profile()?.student_id || '—' }}</span>
-                <span>{{ profileLoaded() ? 'Student' : 'Loading…' }}</span>
               </div>
             </div>
           </div>
@@ -328,13 +327,21 @@ import { ProfileService } from '../../../auth/profile.service';
               </svg>
               <input
                 id="cp-currentPassword"
-                type="password"
+                [type]="showCpCurrentPassword() ? 'text' : 'password'"
                 placeholder="Enter your current password"
                 [(ngModel)]="cpCurrentPassword"
                 name="currentPassword"
                 required
-                class="w-full pl-10 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none focus:ring-0"
+                class="w-full pl-10 pr-10 py-3 text-sm text-slate-900 outline-none bg-transparent border-none focus:ring-0"
               />
+              <button
+                type="button"
+                (click)="toggleCpCurrentPasswordVisibility()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                aria-label="Toggle password visibility"
+              >
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><title>eye-outline</title><path d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/></svg>
+              </button>
               <p *ngIf="cpErrors().currentPassword" class="text-xs text-rose-600 mt-0.5">{{ cpErrors().currentPassword }}</p>
             </div>
           </div>
@@ -349,14 +356,57 @@ import { ProfileService } from '../../../auth/profile.service';
               </svg>
               <input
                 id="cp-newPassword"
-                type="password"
-                placeholder="New password (min 6 characters)"
+                [type]="showCpNewPassword() ? 'text' : 'password'"
+                placeholder="New password"
+                autocomplete="new-password"
                 [(ngModel)]="cpNewPassword"
                 name="newPassword"
                 required
-                class="w-full pl-10 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none focus:ring-0"
+                (input)="cpPasswordRequirements()"
+                class="w-full pl-10 pr-10 py-3 text-sm text-slate-900 outline-none bg-transparent border-none focus:ring-0"
               />
+              <button
+                type="button"
+                (click)="toggleCpNewPasswordVisibility()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                aria-label="Toggle password visibility"
+              >
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><title>eye-outline</title><path d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/></svg>
+              </button>
               <p *ngIf="cpErrors().newPassword" class="text-xs text-rose-600 mt-0.5">{{ cpErrors().newPassword }}</p>
+            </div>
+          </div>
+
+          <!-- Password Requirements (standalone block between New Password and Confirm Password) -->
+          <div class="mt-2 space-y-1">
+            <p class="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Password requirements</p>
+            <div class="flex items-center gap-2 text-xs leading-none">
+              <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                    [class.bg-emerald-500]="cpPasswordRequirements().length"
+                    [class.bg-slate-200]="!cpPasswordRequirements().length"></span>
+              <span [class.text-emerald-600]="cpPasswordRequirements().length"
+                    [class.text-slate-400]="!cpPasswordRequirements().length" class="whitespace-nowrap">At least 6 characters</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs leading-none">
+              <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                    [class.bg-emerald-500]="cpPasswordRequirements().number"
+                    [class.bg-slate-200]="!cpPasswordRequirements().number"></span>
+              <span [class.text-emerald-600]="cpPasswordRequirements().number"
+                    [class.text-slate-400]="!cpPasswordRequirements().number" class="whitespace-nowrap">At least 1 number</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs leading-none">
+              <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                    [class.bg-emerald-500]="cpPasswordRequirements().special"
+                    [class.bg-slate-200]="!cpPasswordRequirements().special"></span>
+              <span [class.text-emerald-600]="cpPasswordRequirements().special"
+                    [class.text-slate-400]="!cpPasswordRequirements().special" class="whitespace-nowrap">At least 1 special character</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs leading-none">
+              <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                    [class.bg-emerald-500]="cpPasswordRequirements().uppercase"
+                    [class.bg-slate-200]="!cpPasswordRequirements().uppercase"></span>
+              <span [class.text-emerald-600]="cpPasswordRequirements().uppercase"
+                    [class.text-slate-400]="!cpPasswordRequirements().uppercase" class="whitespace-nowrap">At least 1 uppercase letter</span>
             </div>
           </div>
 
@@ -370,13 +420,22 @@ import { ProfileService } from '../../../auth/profile.service';
               </svg>
               <input
                 id="cp-confirmPassword"
-                type="password"
+                [type]="showCpConfirmPassword() ? 'text' : 'password'"
                 placeholder="Confirm your new password"
+                autocomplete="new-password"
                 [(ngModel)]="cpConfirmPassword"
                 name="confirmPassword"
                 required
-                class="w-full pl-10 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none focus:ring-0"
+                class="w-full pl-10 pr-10 py-3 text-sm text-slate-900 outline-none bg-transparent border-none focus:ring-0"
               />
+              <button
+                type="button"
+                (click)="toggleCpConfirmPasswordVisibility()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                aria-label="Toggle password visibility"
+              >
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><title>eye-outline</title><path d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/></svg>
+              </button>
               <p *ngIf="cpErrors().confirmPassword" class="text-xs text-rose-600 mt-0.5">{{ cpErrors().confirmPassword }}</p>
             </div>
           </div>
@@ -510,10 +569,25 @@ export class StudentProfilePageComponent implements OnInit {
   }>({});
   cpSubmitError = signal('');
 
+  showCpCurrentPassword = signal(false);
+  showCpNewPassword = signal(false);
+  showCpConfirmPassword = signal(false);
+
   // Change Password form fields
   cpCurrentPassword = '';
   cpNewPassword = '';
   cpConfirmPassword = '';
+
+  /** Password requirement states for the student change-password form. */
+  cpPasswordRequirements = computed(() => {
+    const pw = this.cpNewPassword;
+    return {
+      length: pw.length >= 6,
+      number: /\d/.test(pw),
+      special: /[^a-zA-Z0-9]/.test(pw),
+      uppercase: /[A-Z]/.test(pw),
+    };
+  });
 
   // Shared success popup
   showEditPopup = signal(false);
@@ -646,6 +720,21 @@ export class StudentProfilePageComponent implements OnInit {
     this.cpCurrentPassword = '';
     this.cpNewPassword = '';
     this.cpConfirmPassword = '';
+    this.showCpCurrentPassword.set(false);
+    this.showCpNewPassword.set(false);
+    this.showCpConfirmPassword.set(false);
+  }
+
+  toggleCpCurrentPasswordVisibility(): void {
+    this.showCpCurrentPassword.update(v => !v);
+  }
+
+  toggleCpNewPasswordVisibility(): void {
+    this.showCpNewPassword.update(v => !v);
+  }
+
+  toggleCpConfirmPasswordVisibility(): void {
+    this.showCpConfirmPassword.update(v => !v);
   }
 
   /** Save Edit Information — only Mobile is editable. */
@@ -725,9 +814,18 @@ export class StudentProfilePageComponent implements OnInit {
     if (!newPassword) {
       this.cpErrors.set({ ...this.cpErrors(), newPassword: 'New password is required.' });
       valid = false;
-    } else if (newPassword.length < 6) {
-      this.cpErrors.set({ ...this.cpErrors(), newPassword: 'New password must be at least 6 characters.' });
-      valid = false;
+    } else {
+      const req = this.cpPasswordRequirements();
+      let pwError = '';
+      if (!req.length) pwError = 'Password must be at least 6 characters.';
+      else if (!req.number) pwError = 'Password must contain at least 1 number.';
+      else if (!req.special) pwError = 'Password must contain at least 1 special character.';
+      else if (!req.uppercase) pwError = 'Password must contain at least 1 uppercase letter.';
+
+      if (pwError) {
+        this.cpErrors.set({ ...this.cpErrors(), newPassword: pwError });
+        valid = false;
+      }
     }
 
     if (!confirmPassword) {

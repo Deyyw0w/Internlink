@@ -2,7 +2,7 @@
 <main class="w-full px-8 py-6 space-y-8">
 
   <!-- Header -->
-  <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+  <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     <div class="flex flex-col gap-2">
       <h1 class="text-xl font-extrabold tracking-tight text-white">Contracts &amp; MOAs</h1>
       <p class="text-sm text-slate-300 leading-relaxed max-w-xl">
@@ -16,16 +16,16 @@
       <button
         type="button"
         (click)="openCategoryModal()"
-        class="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-sm transition-colors"
+        class="flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-semibold px-3 py-2 rounded-xl shadow-sm transition-colors"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l2-2m0 0l2-2 2 2 2 2m-6 0l2 2 2-2m0 0l2 2M12 18V6M12 6l2 2"/></svg>
+        <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><title>contracts</title><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M18 6c-.047-1.553-.22-2.48-.862-3.121C16.258 2 14.842 2 12.01 2H8.007c-2.832 0-4.248 0-5.127.879C2 3.757 2 5.172 2 8v8c0 2.828 0 4.243.88 5.121S5.175 22 8.007 22h4.004c2.831 0 4.247 0 5.127-.879c.642-.641.815-1.567.862-3.121"/><path d="m20.242 11.742l1.177-1.177c.27-.27.406-.406.478-.552a1 1 0 0 0 0-.88c-.072-.146-.208-.282-.478-.552s-.406-.406-.552-.478a1 1 0 0 0-.88 0c-.146.072-.281.208-.552.478l-1.177 1.177m1.984 1.984l-5.266 5.266L12 18l.992-2.976l5.266-5.266m1.984 1.984l-1.984-1.984M5 19h1l1.25-2.5L8.5 19h1M6 6h8m-8 4h6"/></g></svg>
         Manage Categories
       </button>
 
       <button
         type="button"
         (click)="openUploadModal()"
-        class="inline-flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162C49] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-colors"
+        class="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-colors"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Upload Contract
@@ -992,9 +992,15 @@
   </div>
 </div>
 
-<!-- ========================================================================
-    Delete Contract Confirmation Modal
-   ======================================================================== -->
-<div *ngIf="false" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-  <!-- deleteContract uses window.confirm instead of a modal; placeholder kept for consistency -->
-</div>
+<!-- Confirm Dialog (delete category / delete contract) -->
+<app-confirm-dialog
+  [open]="confirmDialogOpen()"
+  [title]="confirmTitle()"
+  [message]="confirmMessage()"
+  [confirmLabel]="confirmLabel()"
+  [cancelLabel]="'Cancel'"
+  [loading]="confirmIsDeleting()"
+  [loadingLabel]="'Deleting…'"
+  (confirm)="handleConfirm()"
+  (cancel)="handleConfirmCancel()"
+></app-confirm-dialog>

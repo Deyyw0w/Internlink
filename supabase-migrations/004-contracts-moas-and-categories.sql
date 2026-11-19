@@ -18,8 +18,12 @@ CREATE TABLE IF NOT EXISTS contract_categories (
   name text NOT NULL,
   color text NOT NULL DEFAULT '#1E3A5F',
   is_active boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Idempotent: add updated_at column if the table was created before it existed.
+ALTER TABLE contract_categories ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
 -- 2. contracts_moas table (contracts with category reference)
 CREATE TABLE IF NOT EXISTS contracts_moas (

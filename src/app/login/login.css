@@ -1,1 +1,169 @@
-/* Login page — all styling converted to inline Tailwind utilities in login.html */
+/* Login page — Tailwind utilities composed with @apply to preserve exact design */
+
+:host {
+  display: block;
+}
+
+/* Page Background */
+.login-wrapper {
+  @apply min-h-screen flex items-center justify-center bg-[#070c1b] p-[1.5rem] box-border;
+}
+
+/* Main Card */
+.login-card {
+  @apply w-full max-w-[460px] bg-white rounded-3xl border border-slate-200/80 shadow-xl p-8;
+}
+
+/* Header Banner */
+.card-header {
+  @apply bg-[#1E3A5F] p-[2rem_1.5rem_1.75rem] text-center border-b-[1px_solid_rgba(255,255,255,0.1)];
+}
+
+.badge-wrapper {
+  @apply flex justify-center mb-[0.85rem];
+}
+
+.usl-badge {
+  @apply bg-[#1a56db] text-white font-extrabold text-[1.15rem] tracking-[1.5px] p-[0.45rem_1rem] rounded-[0.65rem] shadow-[0_4px_14px_rgba(26,86,219,0.35)] border-[1px_solid_rgba(255,255,255,0.2)];
+}
+
+.portal-title {
+  @apply m-0 text-[1.5rem] font-bold text-white tracking-[-0.02em];
+}
+
+.portal-subtitle {
+  @apply mt-[0.4rem] mb-0 text-[0.8rem] text-slate-400 leading-[1.4];
+}
+
+/* Inner Body */
+.card-body {
+  @apply p-[1.75rem];
+}
+
+/* Role Switcher Tabs */
+.role-switcher {
+  @apply flex items-center bg-slate-200 p-[0.3rem] rounded-xl mb-[1.5rem] gap-[0.3rem] border border-slate-200;
+}
+
+.tab-btn {
+  @apply flex-1 border-none bg-transparent p-[0.65rem_0.5rem] rounded-lg text-[0.85rem] font-semibold text-slate-500 cursor-pointer items-center justify-center gap-[0.45rem] transition-all duration-200 ease-in-out;
+}
+
+.tab-btn.active {
+  @apply bg-blue-600 text-white shadow-[0_2px_6px_rgba(0,0,0,0.08)];
+}
+
+.tab-icon {
+  @apply h-4 w-4;
+}
+
+/* Form Styles */
+.login-form {
+  @apply flex flex-col gap-[1.15rem];
+}
+
+.field {
+  @apply flex flex-col gap-[0.4rem];
+}
+
+.label-row {
+  @apply flex justify-between items-center;
+}
+
+.field label {
+  @apply text-[0.82rem] font-semibold text-slate-700;
+}
+
+.forgot-link {
+  @apply text-[0.8rem] text-blue-600 no-underline font-medium transition-colors duration-150;
+}
+
+.forgot-link:hover {
+  @apply underline;
+}
+
+/* Inputs with Icons */
+.input-container {
+  @apply relative rounded-xl border border-slate-200 bg-slate-50/80 flex items-center;
+}
+
+.input-icon {
+  @apply absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none;
+}
+
+.input-icon svg {
+  @apply w-5 h-5;
+}
+
+.input-container input {
+  @apply w-full p-[0.75rem_0.85rem_0.75rem_3rem] text-[0.92rem] text-slate-800 outline-none transition-all duration-200 box-border pl-11 rounded-none border-none bg-transparent;
+}
+
+.input-container input:focus {
+  @apply outline-none ring-0;
+}
+
+.input-container:focus-within {
+  @apply border-blue-400 shadow-[0_0_0_2px_rgba(14,165,233,0.2)];
+  @apply text-blue-400;
+}
+
+.input-container:focus-within .input-icon {
+  @apply text-[#1a56db];
+}
+
+/* Error Box */
+.error-box {
+  @apply bg-red-50 border-l-[3px_solid_red-500] text-red-800 p-[0.6rem_0.8rem] rounded-[0.4rem] text-[0.82rem];
+}
+
+/* Action Button */
+.btn-submit {
+  @apply flex items-center justify-center gap-[0.5rem] p-[0.85rem_1rem] bg-blue-600 text-white border-none rounded-lg text-[0.95rem] font-semibold cursor-pointer transition-all duration-200 ease-in-out shadow-[0_4px_12px_rgba(30,58,95,0.25)] mt-[0.25rem];
+}
+
+.btn-submit:hover {
+  @apply bg-blue-700 shadow-[0_6px_16px_rgba(30,58,95,0.35)] -translate-y-[1px];
+}
+
+.btn-submit:active {
+  @apply translate-y-[1px];
+}
+
+.btn-arrow {
+  @apply h-4 w-4 transition-transform duration-150 ease-in-out;
+}
+
+.btn-submit:hover .btn-arrow {
+  @apply translate-x-[3px];
+}
+
+/* Demo Callout Box */
+.demo-callout {
+  @apply flex items-start gap-[0.6rem] bg-[#f8fafc] border-[1px_solid_#e2e8f0] rounded-[0.55rem] p-[0.75rem_0.85rem] mt-[1.25rem];
+}
+
+.callout-icon {
+  @apply h-[1.1rem] w-[1.1rem] text-[#1a56db] shrink-0 mt-[0.1rem];
+}
+
+.callout-text {
+  @apply text-[0.78rem] text-slate-500 leading-[1.4];
+}
+
+.callout-text strong {
+  @apply text-slate-800;
+}
+
+/* Footer */
+.card-footer {
+  @apply text-center mt-[1.25rem] pt-[1rem] border-t-[1px_solid_#f1f5f9] text-[0.82rem] text-slate-500;
+}
+
+.register-link {
+  @apply text-[#1a56db] font-semibold no-underline ml-[0.25rem] transition-colors duration-150;
+}
+
+.register-link:hover {
+  @apply underline;
+}

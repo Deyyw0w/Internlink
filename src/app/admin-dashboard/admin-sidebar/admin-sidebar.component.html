@@ -1,4 +1,4 @@
-<aside class="w-full md:w-72 fixed left-0 top-0 z-30 h-full flex-shrink-0 overflow-y-auto bg-[#1E3A5F] text-white flex flex-col">
+<aside class="w-full md:w-72 fixed left-0 top-0 z-30 h-full flex-shrink-0 overflow-y-auto no-scrollbar bg-[#1E3A5F] text-white flex flex-col">
   <div class="h-20 flex items-center border-b border-white/15 px-6">
     <div class="flex items-center gap-4">
       <img src="assets/logo.png" alt="USLT Logo" class="w-10 h-10 shrink-0 rounded-xl" />
@@ -95,6 +95,11 @@
           <svg *ngSwitchCase="'cog'" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3" />
             <path d="M19.42 15l1.99-1.99-1.41-1.41L18 12l1.99 1.99 1.41-1.41L19.41 10h-2.83l-.71-.71-2.82 2.82L12 14l2.83 2.83 1.41-1.41L13.41 14h2.83l.71.71zM3.77 6.32l1.41-1.41L5 5l1.41 1.41L6.41 5H3.59l-.71-.71-2.83 2.83 1.41 1.41L5 7.59l2.83-2.83L9.17 5H12l-1.41 1.41L10.59 6H13.41l.71-.71 2.83-2.83L19 3.59V6.41l-1.41 1.41L17.59 8H14l1.41 1.41L15.59 9H13l-.71.71-2.83-2.82L9.41 9H6.59l-.71-.71zm14.44 11.34L19.78 13l-1.41-1.41L17 12l1.41 1.41 1.41 1.41L19.78 14h-2.83l-.71-.71-2.82 2.82-1.41-1.41L13.41 12l2.83-2.83-1.41-1.41L10.59 12l-2.83 2.83-1.41 1.41L7 12.59l2.83-2.83L9.17 10H12l-1.41-1.41L10.59 7H13.41l.71-.71 2.83-2.83L19 5.41V12l-1.41 1.41L17.59 14H14l-1.41 1.41L15.59 15H13l1.41 1.41z" />
+          </svg>
+
+          <svg *ngSwitchCase="'activity-log'" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v2M17 5v2M21 12v2M17 17v2M12 22v2M7 17v2M3 12v2M7 5v2" stroke-linecap="round" />
+            <circle cx="12" cy="12" r="3" />
           </svg>
 
           <svg *ngSwitchCase="'admin-panel-settings'" viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">

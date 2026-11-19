@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { supabase } from '../../../../environments/supabase.config';
 import { AuthService, RegisterFormData } from '../../../auth/auth.service';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 interface Account {
   id: string;
@@ -14,12 +15,21 @@ interface Account {
   role: string;
   created_at: string;
   degree_program?: string;
+  department_name?: string;
+  department_abbreviation?: string;
+}
+
+interface PasswordRequirements {
+  length: boolean;
+  number: boolean;
+  special: boolean;
+  uppercase: boolean;
 }
 
 @Component({
   selector: 'app-accounts-management-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   templateUrl: './accounts-management-page.html',
   styleUrl: './accounts-management-page.css'
 })
@@ -33,8 +43,24 @@ export class AccountsManagementPageComponent implements OnInit {
   error = signal<string | null>(null);
   isDeleting = signal<string | null>(null);
 
+  // Confirm dialog state (replaces native confirm() popups).
+  confirmDialogOpen = signal(false);
+  confirmPayload = signal<{ action: 'deleteAccount'; account: Account } | null>(null);
+  confirmIsDeleting = signal(false);
+
+  confirmTitle = signal('');
+  confirmMessage = signal('');
+  confirmLabel = signal('Delete');
+
   // Search
   searchQuery = signal('');
+
+  // Filters
+  departmentFilter = signal<string>('');
+  courseFilter = signal<string>('');
+
+  /** Unique departments derived from loaded accounts, used for the department filter dropdown. */
+  availableDepartments = signal<string[]>([]);
 
   // Edit account modal
   editingAccount = signal<Account | null>(null);
@@ -55,12 +81,14 @@ export class AccountsManagementPageComponent implements OnInit {
 
   // Add account form
   showAddAccount = signal(false);
+  showAddPassword = signal(false);
+  showAddConfirmPassword = signal(false);
   addForm = signal<RegisterFormData>({
     fullName: '',
     studentId: '',
     email: '',
-    password: '',
-    confirmPassword: '',
+    password: 'Internlink.1',
+    confirmPassword: 'Internlink.1',
     degreeProgram: '',
     mobile: '',
     role: 'student',
@@ -69,22 +97,33 @@ export class AccountsManagementPageComponent implements OnInit {
   addSubmitError = signal('');
   isAddingAccount = signal(false);
 
+
   availableDegreePrograms = signal<string[]>([]);
 
-  /** Accounts filtered by the search query (name, email, or student/staff ID). */
-  filteredAccounts = computed(() => {
+  /** Accounts filtered by search query (name, email, or student/staff ID) plus department and course filters. */
+  readonly filteredAccounts = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
-    if (!q) return this.accounts();
-    return this.accounts().filter((a) =>
-      a.full_name.toLowerCase().includes(q) ||
-      a.email.toLowerCase().includes(q) ||
-      a.student_id.toLowerCase().includes(q)
-    );
+    const dept = this.departmentFilter().trim().toLowerCase();
+    const course = this.courseFilter().trim().toLowerCase();
+
+    return this.accounts().filter((a) => {
+      if (q) {
+        const matchesQuery =
+          a.full_name.toLowerCase().includes(q) ||
+          a.email.toLowerCase().includes(q) ||
+          a.student_id.toLowerCase().includes(q);
+        if (!matchesQuery) return false;
+      }
+      if (dept && (a.department_name ?? '').toLowerCase() !== dept) return false;
+      if (course && (a.degree_program ?? '').toLowerCase() !== course) return false;
+      return true;
+    });
   });
 
   ngOnInit(): void {
     this.loadAccounts();
     this.loadDegreePrograms();
+    this.loadDepartments();
   }
 
   async loadAccounts(): Promise<void> {
@@ -94,12 +133,13 @@ export class AccountsManagementPageComponent implements OnInit {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, student_id, mobile, role, degree_program, created_at')
+        .select('id, full_name, email, student_id, mobile, role, degree_program, department_name, department_abbreviation, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      this.accounts.set((data || []) as Account[]);
+      const rows = (data || []) as Account[];
+      this.accounts.set(rows);
       this.cdr.markForCheck();
     } catch (err) {
       console.error('[AccountsManagement] Error loading accounts:', err);
@@ -127,19 +167,42 @@ export class AccountsManagementPageComponent implements OnInit {
     }
   }
 
-  async deleteAccount(account: Account): Promise<void> {
-    if (!window.confirm(`Delete account for ${account.full_name} (${account.email})? This cannot be undone.`)) {
-      return;
-    }
-
-    this.isDeleting.set(account.id);
-
+  /** Load all distinct departments from the degree_programs catalog so the
+   *  department filter shows every available department, not just the ones
+   *  already assigned to loaded accounts. */
+  async loadDepartments(): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', account.id);
+      const { data, error } = await supabase
+        .from('degree_programs')
+        .select('department')
+        .not('department', 'is', null);
 
+      if (error) throw error;
+
+      const departments = [...new Set((data || []).map((d: any) => d.department).filter(Boolean))].sort();
+      this.availableDepartments.set(departments);
+    } catch (err) {
+      console.error('[AccountsManagement] Failed to load departments:', err);
+    }
+  }
+
+  deleteAccount(account: Account): void {
+    this.confirmPayload.set({ action: 'deleteAccount', account });
+    this.confirmTitle.set('Delete account?');
+    this.confirmMessage.set(`This will remove <strong>${account.full_name}</strong>. This cannot be undone.`);
+    this.confirmLabel.set('Delete');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  /** Perform the confirmed account deletion on Supabase. Deletes the profile row.
+   *  The matching Supabase Auth account is left behind but cannot log in without
+   *  a profile (harmless orphan). Edge Function/service-role setup can be added
+   *  later if you want full Auth deletion too. */
+  private async performDeleteAccount(account: Account): Promise<void> {
+    this.isDeleting.set(account.id);
+    try {
+      const { error } = await supabase.from('profiles').delete().eq('id', account.id);
       if (error) throw error;
 
       await this.loadAccounts();
@@ -151,6 +214,35 @@ export class AccountsManagementPageComponent implements OnInit {
     } finally {
       this.isDeleting.set(null);
     }
+  }
+
+  /** Run the action the user confirmed in the confirm dialog. */
+  async handleConfirm(): Promise<void> {
+    const payload = this.confirmPayload();
+    if (!payload) return;
+
+    this.confirmIsDeleting.set(true);
+    try {
+      if (payload.action === 'deleteAccount') {
+        await this.performDeleteAccount(payload.account);
+      }
+    } catch (err) {
+      console.error('[AccountsManagement] Confirmed action failed:', err);
+      alert('Action failed. Please try again.');
+    } finally {
+      this.confirmIsDeleting.set(false);
+      this.confirmDialogOpen.set(false);
+      this.confirmPayload.set(null);
+      this.cdr.markForCheck();
+    }
+  }
+
+  /** Cancel the confirm dialog. */
+  handleConfirmCancel(): void {
+    this.confirmDialogOpen.set(false);
+    this.confirmPayload.set(null);
+    this.confirmIsDeleting.set(false);
+    this.cdr.markForCheck();
   }
 
   toggleAddAccount(): void {
@@ -166,15 +258,76 @@ export class AccountsManagementPageComponent implements OnInit {
         mobile: '',
         role: 'student',
       });
+      this.showAddPassword.set(false);
+      this.showAddConfirmPassword.set(false);
       this.addErrors.set({});
       this.addSubmitError.set('');
+      this.addDeptName.set(null);
+      this.addDeptAbbrev.set(null);
     }
   }
 
   setAddRole(role: 'student' | 'admin'): void {
-    this.addForm.update(f => ({ ...f, role, degreeProgram: '' }));
+    this.addForm.update(f => ({ ...f, role, degreeProgram: '', password: '', confirmPassword: '' }));
+    this.showAddPassword.set(false);
+    this.showAddConfirmPassword.set(false);
     this.addErrors.set({});
     this.addSubmitError.set('');
+    this.addDeptName.set(null);
+    this.addDeptAbbrev.set(null);
+  }
+
+  toggleAddPasswordVisibility(): void {
+    this.showAddPassword.update(v => !v);
+  }
+
+  toggleAddConfirmPasswordVisibility(): void {
+    this.showAddConfirmPassword.update(v => !v);
+  }
+
+  /** Department name for the currently selected add-account degree program. */
+  addDeptName = signal<string | null>(null);
+
+  /** Department abbreviation for the currently selected add-account degree program. */
+  addDeptAbbrev = signal<string | null>(null);
+
+  /** Password requirement states for the add-account admin password field. */
+  passwordRequirements = computed<PasswordRequirements>(() => {
+    const pw = this.addForm().password;
+    return {
+      length: pw.length >= 6,
+      number: /\d/.test(pw),
+      special: /[^a-zA-Z0-9]/.test(pw),
+      uppercase: /[A-Z]/.test(pw),
+    };
+  });
+
+  /** Trigger department lookup when degree program changes. */
+  onAddDegreeProgramChange(prog: string): void {
+    this.addForm.update(f => ({ ...f, degreeProgram: prog }));
+    this.addDeptName.set(null);
+    this.addDeptAbbrev.set(null);
+    this.lookupAddDegreeDept(prog);
+  }
+
+  private async lookupAddDegreeDept(program: string): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('degree_programs')
+        .select('department, department_abbreviation')
+        .eq('name', program)
+        .single();
+      if (!error && data) {
+        this.addDeptName.set(data.department ?? null);
+        this.addDeptAbbrev.set(data.department_abbreviation ?? null);
+      } else {
+        this.addDeptName.set(null);
+        this.addDeptAbbrev.set(null);
+      }
+    } catch {
+      this.addDeptName.set(null);
+      this.addDeptAbbrev.set(null);
+    }
   }
 
   onFieldChange(field: string, value: string): void {
@@ -184,6 +337,68 @@ export class AccountsManagementPageComponent implements OnInit {
       return rest;
     });
     this.addSubmitError.set('');
+  }
+
+  /** Strip non-digits and cap at 11 digits as the user types. Only clean digits are stored and shown. */
+  onAddMobileInput(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const digits = target.value.replace(/\D/g, '').slice(0, 11);
+    target.value = digits;
+    this.addForm.update(f => ({ ...f, mobile: digits }));
+    this.addErrors.update(e => {
+      const { mobile: _, ...rest } = e;
+      return rest;
+    });
+    this.addSubmitError.set('');
+  }
+
+  /** Strip non-digits from pasted text so only clean digits (max 11) are stored. */
+  onAddMobilePaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const clipboard = event.clipboardData;
+    if (!clipboard) return;
+    const digits = clipboard.getData('text').replace(/\D/g, '').slice(0, 11);
+    if (!digits) return;
+
+    const target = event.target as HTMLInputElement;
+    target.value = digits;
+
+    const inputEvent = new Event('input', { bubbles: true });
+    target.dispatchEvent(inputEvent);
+  }
+
+  formatEditMobile(raw: string): void {
+    this.editForm.update(f => ({ ...f, mobile: this.formatMobileValue(raw) }));
+    this.editErrors.update(e => {
+      const { mobile: _, ...rest } = e;
+      return rest;
+    });
+    this.editSubmitError.set('');
+  }
+
+  private formatMobileValue(raw: string): string {
+    const digits = raw.replace(/\D/g, '');
+    // Cap at 11 digits (PH mobile max: 09XXXXXXXXX) before stripping prefixes
+    let d = digits.slice(0, 11);
+    if (d.startsWith('63')) d = d.slice(2);
+    else if (d.startsWith('0')) d = d.slice(1);
+
+    if (!d) return '';
+
+    const p1 = d.slice(0, 3);
+    const p2 = d.slice(3, 6);
+    const p3 = d.slice(6, 10);
+
+    let out = '';
+    if (p1) out += '(' + p1;
+    if (p2) out += ') ' + p2;
+    if (p3) out += '-' + p3;
+    return out;
+  }
+
+  /** Strip all non-digits so the value fits an integer mobile column. */
+  private sanitizeMobile(raw: string): string {
+    return raw.replace(/\D/g, '');
   }
 
   clearAddErrors(): void {
@@ -278,6 +493,27 @@ export class AccountsManagementPageComponent implements OnInit {
     this.isUpdatingAccount.set(true);
 
     try {
+      // Resolve department info from degree_programs (mirrors auth.service.ts registration logic).
+      let departmentName: string | null = null;
+      let departmentAbbreviation: string | null = null;
+      let practicumHours: number | null = null;
+
+      if (this.editForm().role === 'student' && this.editForm().degreeProgram) {
+        const { data: degRow, error: degError } = await supabase
+          .from('degree_programs')
+          .select('department, department_abbreviation, practicum_hours')
+          .eq('name', this.editForm().degreeProgram)
+          .single();
+
+        if (!degError && degRow) {
+          departmentName = degRow.department ?? null;
+          departmentAbbreviation = degRow.department_abbreviation ?? null;
+          practicumHours = degRow.practicum_hours ?? null;
+        } else {
+          console.warn('[AccountsManagement] No degree_program match for department lookup:', degError?.message ?? 'not found');
+        }
+      }
+
       // Prevent changing the email/ID to one already taken by another account
       const { data: existingProfiles, error: checkError } = await supabase
         .from('profiles')
@@ -304,9 +540,12 @@ export class AccountsManagementPageComponent implements OnInit {
           full_name: this.editForm().fullName.trim(),
           student_id: this.editForm().studentId.trim(),
           email: this.editForm().email.trim().toLowerCase(),
-          mobile: this.editForm().mobile.trim(),
+          mobile: this.sanitizeMobile(this.editForm().mobile),
           role: this.editForm().role,
-          degree_program: this.editForm().role === 'student' ? this.editForm().degreeProgram : null,
+          degree_program: this.editForm().role === 'admin' ? 'GLOCAL' : (this.editForm().role === 'student' ? this.editForm().degreeProgram : null),
+          department_name: departmentName,
+          department_abbreviation: departmentAbbreviation,
+          practicum_hours: practicumHours,
         })
         .eq('id', account.id);
 
@@ -356,12 +595,27 @@ export class AccountsManagementPageComponent implements OnInit {
       valid = false;
     }
 
+    // Students get the default password Internlink.1 when no password is entered.
+    // Admin accounts require the admin to type their own password.
+    if (this.addForm().role === 'student' && !this.addForm().password?.trim()) {
+      this.addForm.update(f => ({ ...f, password: 'Internlink.1', confirmPassword: 'Internlink.1' }));
+    }
+
     if (!this.addForm().password) {
       this.addErrors.update(e => ({ ...e, password: 'Password is required.' }));
       valid = false;
-    } else if (this.addForm().password.length < 6) {
-      this.addErrors.update(e => ({ ...e, password: 'Password must be at least 6 characters.' }));
-      valid = false;
+    } else {
+      const req = this.passwordRequirements();
+      let pwError = '';
+      if (!req.length) pwError = 'Password must be at least 6 characters.';
+      else if (!req.number) pwError = 'Password must contain at least 1 number.';
+      else if (!req.special) pwError = 'Password must contain at least 1 special character.';
+      else if (!req.uppercase) pwError = 'Password must contain at least 1 uppercase letter.';
+
+      if (pwError) {
+        this.addErrors.update(e => ({ ...e, password: pwError }));
+        valid = false;
+      }
     }
 
     if (!this.addForm().confirmPassword) {
@@ -419,7 +673,7 @@ export class AccountsManagementPageComponent implements OnInit {
         password: this.addForm().password,
         confirmPassword: this.addForm().confirmPassword,
         degreeProgram: this.addForm().degreeProgram,
-        mobile: this.addForm().mobile.trim(),
+        mobile: this.sanitizeMobile(this.addForm().mobile),
         role: this.addForm().role,
       });
 

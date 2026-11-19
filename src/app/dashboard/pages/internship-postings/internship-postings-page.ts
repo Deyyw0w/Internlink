@@ -80,9 +80,16 @@ export class InternshipPostingsPageComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   posts = signal<InternshipPosting[]>([]);
-  searchQuery = '';
-  selectedDegreeFilter = '';
+  searchQuery = signal('');
+  selectedDegreeFilter = signal('');
+  departmentFilter = signal('');
   availableDegreeFilters: string[] = [];
+
+  readonly availableDepartments = computed(() => {
+    return [...new Set(this.categories().map((c) => c.department))]
+      .filter((dept) => dept !== 'GLOCAL')
+      .sort();
+  });
 
   // Dynamic categories grouped by department from degree_programs table
   categories = signal<{ department: string; abbreviation: string; degrees: string[]; borderColor: string; bgColor: string; dotColor: string }[]>([]);
@@ -124,16 +131,22 @@ export class InternshipPostingsPageComponent implements OnInit {
 
   readonly filteredPosts = computed(() => {
     let result = this.posts();
-    const q = this.searchQuery.toLowerCase().trim();
+    const q = this.searchQuery().toLowerCase().trim();
     if (q) {
-      result = result.filter(post =>
+      result = result.filter((post) =>
         post.country.toLowerCase().includes(q) ||
         post.track.toLowerCase().includes(q) ||
         post.degree.toLowerCase().includes(q)
       );
     }
-    if (this.selectedDegreeFilter) {
-      result = result.filter(post => post.tags.includes(this.selectedDegreeFilter));
+    if (this.selectedDegreeFilter()) {
+      result = result.filter((post) => post.tags.includes(this.selectedDegreeFilter()));
+    }
+    if (this.departmentFilter()) {
+      result = result.filter((post) => {
+        const cat = this.categories().find((c) => c.department === this.departmentFilter());
+        return cat && cat.degrees.some((d) => post.tags.includes(d));
+      });
     }
     return result;
   });
@@ -249,8 +262,10 @@ export class InternshipPostingsPageComponent implements OnInit {
 
         const programs = (degreePrograms || []) as any[];
 
-        // Degree filters for dropdown
-        this.availableDegreeFilters = programs.map((d) => d.name).filter(Boolean);
+        // Degree filters for dropdown (exclude GLOCAL — it's an admin-only department)
+        this.availableDegreeFilters = programs
+          .map((d) => d.name)
+          .filter((name) => Boolean(name) && name !== 'GLOCAL');
 
         // Practicum hours map from DB
         const hoursMap: Record<string, string> = {};

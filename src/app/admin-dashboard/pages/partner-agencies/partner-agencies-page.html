@@ -60,7 +60,19 @@
 
   <!-- Filters / Search -->
   <section *ngIf="!loading() && !error()" class="w-full px-8 py-4 space-y-4">
-    <div class="flex flex-wrap items-center justify-between gap-4">
+    <!-- Manage Countries button -->
+    <div class="flex items-center gap-4">
+      <button type="button" (click)="openCountryModal()" class="flex items-center gap-3 px-5 py-3 rounded-xl bg-[#1E3A5F] text-white text-sm font-semibold shadow-[0_4px_6px_-1px_rgba(30,58,95,0.3)] hover:bg-blue-700 hover:shadow-[0_6px_8px_-1px_rgba(30,58,95,0.4)] transition-all duration-200 hover:-translate-y-[1px]">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+        Manage Countries
+      </button>
+      <div *ngIf="countryMgmtError()" class="text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-md border border-rose-100">
+        {{ countryMgmtError() }}
+      </div>
+    </div>
+
+    <!-- Filter group: Category only -->
+    <div class="flex flex-wrap items-center gap-3" role="group" aria-label="Agency filters">
       <div class="flex flex-wrap items-center gap-3" role="tablist" aria-label="Agency category">
         <button
           type="button"
@@ -75,13 +87,27 @@
           {{ categoryLabels[category] }}
         </button>
       </div>
+    </div>
 
-      <div class="relative flex items-center">
+    <!-- Search group: Search bar + Country filter + count (count pushed to far right) -->
+    <div class="flex items-center gap-3">
+      <div class="relative flex items-center flex-1 max-w-md">
         <svg viewBox="0 0 24 24" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" placeholder="Search agencies by name or location..." [(ngModel)]="searchQuery" class="bg-white border border-slate-200 text-slate-800 placeholder-slate-400 rounded-full pl-10 pr-4 py-2 text-sm w-64 sm:w-80 shadow-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-2 focus:ring-[#1E3A5F]/15 transition-all"/>
+        <input type="text" placeholder="Search agencies by name or location..." [(ngModel)]="searchQuery" class="bg-white border border-slate-200 text-slate-800 placeholder-slate-400 rounded-full pl-10 pr-4 py-2 text-sm w-full shadow-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-2 focus:ring-[#1E3A5F]/15 transition-all"/>
       </div>
 
-      <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1E3A5F]/5 border border-[#1E3A5F]/10">
+      <div class="flex items-center gap-2 min-w-[190px]">
+        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">Country</label>
+        <select
+          [(ngModel)]="countryFilter"
+          class="border border-slate-300 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] min-w-[160px] w-full"
+        >
+          <option value="">-- All Countries --</option>
+          <option *ngFor="let c of managedCountries()" [value]="c.name">{{ c.name }}</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1E3A5F]/5 border border-[#1E3A5F]/10 ml-auto">
         <span class="text-xs font-medium text-slate-600">
           <strong class="text-[#1E3A5F] font-semibold">{{ filteredAgencies.length }}</strong> agencies
         </span>
@@ -224,7 +250,10 @@
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Country</label>
-          <input type="text" [(ngModel)]="newCountry" placeholder="e.g. Japan" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+          <select [ngModel]="newCountryId()" (ngModelChange)="onCountryIdChange($event)" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]">
+            <option value="">-- Select Country --</option>
+            <option *ngFor="let c of managedCountries()" [value]="c.id">{{ c.name }}</option>
+          </select>
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Location</label>
@@ -254,5 +283,132 @@
       </div>
     </div>
   </div>
+
+  <!-- Manage Countries Modal -->
+  <div *ngIf="showCountryModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" (click)="closeCountryModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200 flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
+      <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center">
+              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><title>country-flag-pole</title><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 3.5V21M6 4.5h12l-2.5 4l2.5 4H6"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900">Manage Countries</h3>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">Add or remove countries available in the agency dropdown.</p>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" (click)="closeCountryModal()">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-6 flex-1 overflow-y-auto">
+        <div *ngIf="countryMgmtError()" class="text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-md border border-rose-100">
+          {{ countryMgmtError() }}
+        </div>
+
+        <!-- Country List -->
+        <div *ngIf="managedCountries().length > 0; else emptyCountries">
+          <!-- Add Country button (prominent, at top) -->
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-xs text-slate-500 uppercase tracking-wider font-bold">
+              {{ managedCountries().length }} countries
+            </div>
+            <button type="button" (click)="showAddCountryRow.set(true)" class="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#1E3A5F] text-[#1E3A5F] text-xs font-bold hover:bg-[#1E3A5F]/10 transition-colors">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              Add Country
+            </button>
+          </div>
+
+          <div class="space-y-2">
+            <div *ngFor="let c of managedCountries()" class="group flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all min-w-0">
+              <div class="flex items-center min-w-0">
+                <div class="min-w-0">
+                  <div class="text-sm font-medium text-slate-900 truncate">{{ c.name }}</div>
+                  <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{{ c.is_active ? 'Active' : 'Inactive' }}</div>
+                </div>
+              </div>
+              <button type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" (click)="openCountryDelete(c)" title="Delete country">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <!-- Inline Add Country row (shown when "Add Country" clicked) -->
+            <div *ngIf="showAddCountryRow()" class="mt-2 space-y-3">
+              <div class="border border-slate-200 rounded-xl p-1 shadow-sm">
+                <div class="flex items-center gap-2">
+                  <input type="text" [(ngModel)]="newCountry" placeholder="New country name…" class="flex-1 border-none outline-none bg-transparent text-sm placeholder-slate-400 px-3 py-2"/>
+                  <button type="button" (click)="addCountry(); showAddCountryRow.set(false)" class="bg-[#1E3A5F] hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors" [disabled]="!newCountry().trim()">
+                    Add
+                  </button>
+                  <button type="button" (click)="showAddCountryRow.set(false); newCountry.set('')" class="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">New countries appear in the agency dropdown and filter.</p>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #emptyCountries>
+          <div class="flex flex-col items-center justify-center py-12 text-center">
+            <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v14m-6 0h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900 mb-1">No countries yet</h3>
+            <p class="text-xs text-slate-500 mb-4">Add your first country to use it in agency assignments.</p>
+            <div class="flex gap-2">
+              <input type="text" [(ngModel)]="newCountry" placeholder="New country name" class="flex-1 border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]"/>
+              <button type="button" (click)="addCountry()" class="bg-[#1E3A5F] hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors" [disabled]="!newCountry().trim()">
+                Add Country
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <button type="button" class="px-4 py-2 rounded-lg bg-[#1E3A5F] text-white font-semibold text-sm hover:bg-blue-700 transition-colors" (click)="closeCountryModal()">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Dialog (delete country / delete agency / toggle status) -->
+  <app-confirm-dialog
+    *ngIf="confirmCountryDialogOpen()"
+    [open]="confirmCountryDialogOpen()"
+    [title]="confirmCountryTitle()"
+    [message]="confirmCountryMessage()"
+    [confirmLabel]="'Delete'"
+    [cancelLabel]="'Cancel'"
+    (confirm)="deleteCountry()"
+    (cancel)="cancelCountryDelete()"
+  ></app-confirm-dialog>
+
+  <app-confirm-dialog
+    [open]="confirmDialogOpen()"
+    [title]="confirmTitle()"
+    [message]="confirmMessage()"
+    [confirmLabel]="confirmLabel()"
+    [cancelLabel]="'Cancel'"
+    [loading]="confirmIsDeleting()"
+    [loadingLabel]="'Deleting…'"
+    (confirm)="handleConfirm()"
+    (cancel)="handleConfirmCancel()"
+  ></app-confirm-dialog>
+  <app-confirm-dialog
+    [open]="confirmDialogOpen()"
+    [title]="confirmTitle()"
+    [message]="confirmMessage()"
+    [confirmLabel]="confirmLabel()"
+    [cancelLabel]="'Cancel'"
+    [loading]="confirmIsDeleting()"
+    [loadingLabel]="'Deleting…'"
+    (confirm)="handleConfirm()"
+    (cancel)="handleConfirmCancel()"
+  ></app-confirm-dialog>
 
 </div>

@@ -7,8 +7,60 @@ interface AdminNotification {
   title: string;
   body: string;
   timeAgo: string;
-  type: 'application' | 'requirement';
+  type: 'application' | 'requirement' | 'admin-action';
   status?: string;
+}
+
+/** Friendly label for a monitored table. */
+function tableLabel(tableName: string): string {
+  const map: Record<string, string> = {
+    contract_categories: 'Contract Category',
+    contracts_moas: 'Contract',
+    internship_applications: 'Application',
+    forms_templates: 'Form Template',
+    countries: 'Country',
+    companies: 'Company / Agency',
+  };
+  return map[tableName] || tableName;
+}
+
+/** Human-readable verb for an audit-log action. */
+function actionWord(actionType: string): string {
+  switch (actionType) {
+    case 'create':
+      return 'Added';
+    case 'update':
+      return 'Updated';
+    case 'delete':
+      return 'Deleted';
+    default:
+      return actionType;
+  }
+}
+
+/** Build a readable body line describing what changed on a record. */
+function auditBody(row: any): string {
+  const label = tableLabel(row.table_name);
+  const newVals = (row.new_values || {}) as any;
+  const oldVals = (row.old_values || {}) as any;
+  const name = newVals.name || newVals.title || oldVals.name || oldVals.title || row.record_id || '—';
+
+  if (row.action_type === 'create') {
+    return `New ${label} “${name}” was added.`;
+  }
+  if (row.action_type === 'delete') {
+    return `${label} “${name}” was deleted.`;
+  }
+  // update — call out the fields that changed, if any
+  const changed: string[] = [];
+  const allKeys = new Set([...Object.keys(oldVals || {}), ...Object.keys(newVals || {})]);
+  allKeys.forEach((k) => {
+    const oldV = oldVals[k];
+    const newV = newVals[k];
+    if (String(oldV) !== String(newV)) changed.push(k);
+  });
+  const detail = changed.length > 0 ? ` (${changed.join(', ')})` : '';
+  return `${label} “${name}” was updated${detail}.`;
 }
 
 function timeAgo(iso: string | null): string {
@@ -36,11 +88,11 @@ function timeAgo(iso: string | null): string {
     <main class="w-full px-8 py-6 space-y-6">
 
       <!-- Header -->
-      <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="flex flex-col gap-1">
           <h2 class="text-xl font-extrabold tracking-tight">Admin Notification Logs</h2>
           <p class="text-sm text-slate-300 leading-relaxed max-w-xl">
-            Monitor student application submissions, document verification events, and approval actions in real time.
+            Monitor student application submissions, document verification events, admin CRUD changes, and approval actions in real time.
           </p>
         </div>
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-[0.7rem] font-bold text-slate-600 border border-slate-200">
@@ -62,6 +114,10 @@ function timeAgo(iso: string | null): string {
         <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Documents</p>
           <p class="text-2xl font-bold text-slate-900">{{ notificationStats().requirements }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Admin Actions</p>
+          <p class="text-2xl font-bold text-slate-900">{{ notificationStats().adminActions }}</p>
         </div>
         <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Latest Activity</p>
@@ -95,10 +151,11 @@ function timeAgo(iso: string | null): string {
                   class="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
                   [ngClass]="{
                     'bg-amber-100 text-amber-700': n.type === 'application',
-                    'bg-blue-100 text-blue-700': n.type === 'requirement'
+                    'bg-blue-100 text-blue-700': n.type === 'requirement',
+                    'bg-purple-100 text-purple-700': n.type === 'admin-action'
                   }"
                 >
-                  {{ n.type === 'application' ? 'Application' : 'Document' }}
+                  {{ n.type === 'application' ? 'Application' : n.type === 'requirement' ? 'Document' : 'Admin Action' }}
                 </span>
               </div>
               <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">{{ n.body }}</p>
@@ -131,6 +188,7 @@ function timeAgo(iso: string | null): string {
 export class NotificationLogsPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private logsSubscription: any = null;
+  private auditLogsSubscription: any = null;
 
   notifications = signal<AdminNotification[]>([]);
   loading = signal(false);
@@ -141,13 +199,6 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     await this.loadLogs();
     this.subscribeToUpdates();
-  }
-
-  ngOnDestroy(): void {
-    if (this.logsSubscription) {
-      supabase.removeChannel(this.logsSubscription);
-      this.logsSubscription = null;
-    }
   }
 
   async loadLogs(): Promise<void> {
@@ -172,6 +223,15 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
         .limit(20);
 
       if (reqsError) throw reqsError;
+
+      // Fetch recent admin audit-log entries
+      const { data: auditLogs, error: auditError } = await supabase
+        .from('admin_activity_logs')
+        .select('id, action_type, table_name, record_id, old_values, new_values, performed_by, performed_at')
+        .order('performed_at', { ascending: false })
+        .limit(20);
+
+      if (auditError) throw auditError;
 
       const itemsWithDate: { item: AdminNotification; date: Date }[] = [];
 
@@ -205,8 +265,20 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
         });
       });
 
-      itemsWithDate.sort((a, b) => b.date.getTime() - a.date.getTime());
-      const items: AdminNotification[] = itemsWithDate.map((x) => x.item).slice(0, 20);
+      (auditLogs || []).forEach((log: any) => {
+        const logDate = new Date(log.performed_at || '');
+        itemsWithDate.push({
+          item: {
+            id: `audit-${log.id}`,
+            title: `${actionWord(log.action_type)} ${tableLabel(log.table_name)}`,
+            body: auditBody(log),
+            timeAgo: timeAgo(log.performed_at),
+            type: 'admin-action',
+            status: log.action_type,
+          },
+          date: logDate,
+        });
+      });
 
       itemsWithDate.sort((a, b) => b.date.getTime() - a.date.getTime());
       this.notifications.set(itemsWithDate.map((x) => x.item).slice(0, 20));
@@ -226,6 +298,7 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
       total: list.length,
       applications: list.filter((n) => n.type === 'application').length,
       requirements: list.filter((n) => n.type === 'requirement').length,
+      adminActions: list.filter((n) => n.type === 'admin-action').length,
       latest: list.length > 0 ? list[0].timeAgo : '—',
     };
   }
@@ -253,5 +326,31 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
       .subscribe((status) => {
         console.log('[AdminNotificationLogs] Realtime channel status:', status);
       });
+
+    // Admin audit-log entries (INSERT only — the trail is append-only).
+    this.auditLogsSubscription = supabase
+      .channel('admin-audit-logs-updates')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'admin_activity_logs' },
+        () => {
+          console.log('[AdminNotificationLogs] Realtime event (admin_activity_logs): refreshing logs.');
+          void this.loadLogs();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[AdminNotificationLogs] Realtime channel (admin_activity_logs) status:', status);
+      });
+  }
+
+  ngOnDestroy(): void {
+    if (this.logsSubscription) {
+      supabase.removeChannel(this.logsSubscription);
+      this.logsSubscription = null;
+    }
+    if (this.auditLogsSubscription) {
+      supabase.removeChannel(this.auditLogsSubscription);
+      this.auditLogsSubscription = null;
+    }
   }
 }

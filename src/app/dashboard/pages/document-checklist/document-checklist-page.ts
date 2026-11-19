@@ -27,7 +27,7 @@ const STORAGE_BUCKET = 'internship-documents';
     <main class="w-full px-8 py-6 space-y-6">
 
       <!-- Header Banner -->
-      <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+      <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M4 4a2 2 0 0 0-2 2v12a2 2 0 0 0 .087.586l2.977-7.937A1 1 0 0 1 6 10h12V9a2 2 0 0 0-2-2h-4.532l-1.9-2.28A2 2 0 0 0 8.032 4H4Zm2.693 8H6.5l-3 8H18l3-8H6.693Z" clip-rule="evenodd"/></svg>
           <div class="flex flex-col gap-0.5">

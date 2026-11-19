@@ -121,6 +121,13 @@ export class ReportsAnalyticsPageComponent implements OnInit {
     }
   }
 
+  /** Apply the custom From/To date range. Keeps dateRange on 'custom' so the
+   *  reactive filteredApps computed picks up the new customFrom/customTo values. */
+  applyCustomRange(): void {
+    this.dateRange.set('custom');
+    this.cdr.markForCheck();
+  }
+
   /** Compute the start/end date for the selected range. */
   private rangeBounds(): { start: Date | null; end: Date | null } {
     const now = new Date();

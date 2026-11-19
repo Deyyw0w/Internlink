@@ -1,7 +1,7 @@
 <main class="w-full px-8 py-6 space-y-8">
 
   <!-- Header -->
-  <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+  <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     <div class="flex flex-col gap-2">
       <div class="flex items-center gap-3">
         <div class="w-12 h-12 rounded-2xl bg-amber-900/20 border border-amber-500/30 flex items-center justify-center">
@@ -213,57 +213,119 @@
             <div class="space-y-5">
               <div class="flex flex-col gap-2">
                 <label class="text-sm font-semibold text-slate-700">Current Password</label>
-                <div
-                  class="relative rounded-xl border bg-slate-50"
-                  [ngClass]="{ 'border-rose-500': passwordErrors()['current_password'] }"
-                >
+                <div class="relative rounded-xl border bg-slate-50"
+                     [ngClass]="{ 'border-rose-500': passwordErrors()['current_password'] }">
                   <input
                     id="cp-currentPassword"
-                    type="password"
+                    [type]="showCurrentPassword() ? 'text' : 'password'"
                     placeholder="Enter your current password"
                     [(ngModel)]="passwordForm().current_password"
                     name="current_password"
                     required
-                    class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+                    class="w-full pl-4 pr-10 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
                   />
+                  <button
+                    type="button"
+                    (click)="toggleCurrentPasswordVisibility()"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                    aria-label="Toggle password visibility"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path *ngIf="!showCurrentPassword()" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round" />
+                      <path *ngIf="!showCurrentPassword()" d="M12 18a3 3 0 100-6 3 3 0 000 6z" stroke-linecap="round" />
+                      <path *ngIf="showCurrentPassword()" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.83m-5.56 1.44m-5.56 1.44A10.07 10.07 0 0112 4c-7 0-11 8-11 8a18.49 18.49 0 005.06-5.94M9.9 4.24A9.12 9.12 0 0012 4c-7 0-11 8-11 8a18.5 18.5 0 002.16 3.83m5.56-1.44" stroke-linecap="round" />
+                    </svg>
+                  </button>
                   <p *ngIf="passwordErrors()['current_password']" class="text-xs text-rose-600 mt-0.5">{{ passwordErrors()['current_password'] }}</p>
                 </div>
               </div>
 
               <div class="flex flex-col gap-2">
                 <label class="text-sm font-semibold text-slate-700">New Password</label>
-                <div
-                  class="relative rounded-xl border bg-slate-50"
-                  [ngClass]="{ 'border-rose-500': passwordErrors()['new_password'] }"
-                >
+                <div class="relative rounded-xl border bg-slate-50"
+                     [ngClass]="{ 'border-rose-500': passwordErrors()['new_password'] }">
                   <input
                     id="cp-newPassword"
-                    type="password"
-                    placeholder="New password (min 6 characters)"
+                    [type]="showNewPassword() ? 'text' : 'password'"
+                    placeholder="New password"
                     [(ngModel)]="passwordForm().new_password"
                     name="new_password"
                     required
-                    class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+                    (input)="checkPasswordRequirements()"
+                    class="w-full pl-4 pr-10 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
                   />
+                  <button
+                    type="button"
+                    (click)="toggleNewPasswordVisibility()"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                    aria-label="Toggle password visibility"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path *ngIf="!showNewPassword()" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round" />
+                      <path *ngIf="!showNewPassword()" d="M12 18a3 3 0 100-6 3 3 0 000 6z" stroke-linecap="round" />
+                      <path *ngIf="showNewPassword()" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.83m-5.56 1.44m-5.56 1.44A10.07 10.07 0 0112 4c-7 0-11 8-11 8a18.49 18.49 0 005.06-5.94M9.9 4.24A9.12 9.12 0 0012 4c-7 0-11 8-11 8a18.5 18.5 0 002.16 3.83m5.56-1.44" stroke-linecap="round" />
+                    </svg>
+                  </button>
                   <p *ngIf="passwordErrors()['new_password']" class="text-xs text-rose-600 mt-0.5">{{ passwordErrors()['new_password'] }}</p>
+                  <div class="mt-2 space-y-1">
+                    <p class="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Password requirements</p>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="w-1.5 h-1.5 rounded-full"
+                            [class.bg-emerald-500]="passwordRequirements().length"
+                            [class.bg-slate-200]="!passwordRequirements().length"></span>
+                      <span [class.text-emerald-600]="passwordRequirements().length"
+                            [class.text-slate-400]="!passwordRequirements().length">At least 6 characters</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="w-1.5 h-1.5 rounded-full"
+                            [class.bg-emerald-500]="passwordRequirements().number"
+                            [class.bg-slate-200]="!passwordRequirements().number"></span>
+                      <span [class.text-emerald-600]="passwordRequirements().number"
+                            [class.text-slate-400]="!passwordRequirements().number">At least 1 number</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="w-1.5 h-1.5 rounded-full"
+                            [class.bg-emerald-500]="passwordRequirements().special"
+                            [class.bg-slate-200]="!passwordRequirements().special"></span>
+                      <span [class.text-emerald-600]="passwordRequirements().special"
+                            [class.text-slate-400]="!passwordRequirements().special">At least 1 special character</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="w-1.5 h-1.5 rounded-full"
+                            [class.bg-emerald-500]="passwordRequirements().uppercase"
+                            [class.bg-slate-200]="!passwordRequirements().uppercase"></span>
+                      <span [class.text-emerald-600]="passwordRequirements().uppercase"
+                            [class.text-slate-400]="!passwordRequirements().uppercase">At least 1 uppercase letter</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div class="flex flex-col gap-2">
                 <label class="text-sm font-semibold text-slate-700">Confirm New Password</label>
-                <div
-                  class="relative rounded-xl border bg-slate-50"
-                  [ngClass]="{ 'border-rose-500': passwordErrors()['confirm_password'] }"
-                >
+                <div class="relative rounded-xl border bg-slate-50"
+                     [ngClass]="{ 'border-rose-500': passwordErrors()['confirm_password'] }">
                   <input
                     id="cp-confirmPassword"
-                    type="password"
+                    [type]="showConfirmPassword() ? 'text' : 'password'"
                     placeholder="Confirm your new password"
                     [(ngModel)]="passwordForm().confirm_password"
                     name="confirm_password"
                     required
-                    class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+                    class="w-full pl-4 pr-10 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
                   />
+                  <button
+                    type="button"
+                    (click)="toggleConfirmPasswordVisibility()"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                    aria-label="Toggle password visibility"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path *ngIf="!showConfirmPassword()" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round" />
+                      <path *ngIf="!showConfirmPassword()" d="M12 18a3 3 0 100-6 3 3 0 000 6z" stroke-linecap="round" />
+                      <path *ngIf="showConfirmPassword()" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.83m-5.56 1.44m-5.56 1.44A10.07 10.07 0 0112 4c-7 0-11 8-11 8a18.49 18.49 0 005.06-5.94M9.9 4.24A9.12 9.12 0 0012 4c-7 0-11 8-11 8a18.5 18.5 0 002.16 3.83m5.56-1.44" stroke-linecap="round" />
+                    </svg>
+                  </button>
                   <p *ngIf="passwordErrors()['confirm_password']" class="text-xs text-rose-600 mt-0.5">{{ passwordErrors()['confirm_password'] }}</p>
                 </div>
               </div>

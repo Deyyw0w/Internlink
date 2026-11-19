@@ -419,6 +419,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
         deadline: p.application_deadline,
         location: p.location,
         tags: p.tags,
+        company: p.company_name,
       }));
   }
 }

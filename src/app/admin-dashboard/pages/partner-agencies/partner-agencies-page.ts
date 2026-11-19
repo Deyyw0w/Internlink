@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
 import { ProfileService } from '../../../auth/profile.service';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { AuditLogService } from '../../../shared/services/audit-log.service';
 
 export type AgencyCategory = 'partner-countries';
 
@@ -10,7 +12,8 @@ export interface AgencyCard {
   id: string;                  // companies.id is a UUID (text), not a number
   name: string;
   category: AgencyCategory;
-  country: string;
+  country: string;             // display name (from countries table or address derivation)
+  countryId: string | null;    // FK into countries table, null when not assigned
   location: string;
   description: string | null;
   interns: number;
@@ -19,8 +22,15 @@ export interface AgencyCard {
   initials: string;
 }
 
+export interface Country {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export const AGENCY_CATEGORY_LABELS: Record<AgencyCategory, string> = {
-  'partner-countries': 'Partner Countries',
+  'partner-countries': 'Partner Agencies',
 };
 
 interface CompanyRow {
@@ -30,16 +40,18 @@ interface CompanyRow {
   industry: string | null;
   is_active: boolean;
   slots: number | null;        // requires: ALTER TABLE companies ADD COLUMN IF NOT EXISTS slots integer default 0;
+  country_id: string | null;   // FK into countries table
 }
 
 @Component({
   selector: 'app-admin-partner-agencies-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   templateUrl: './partner-agencies-page.html',
 })
 export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly auditLog = inject(AuditLogService);
   readonly profileService = inject(ProfileService);
 
   private agenciesSubscription: any = null;
@@ -47,19 +59,31 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
 
   readonly categories: AgencyCategory[] = ['partner-countries'];
   readonly categoryLabels = AGENCY_CATEGORY_LABELS;
-
   agencies = signal<AgencyCard[]>([]);
+  countries = signal<string[]>([]);
+  managedCountries = signal<Country[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
   applicantsError = signal<string | null>(null);
+  countryMgmtError = signal<string | null>(null);
 
-  // Inline edit state for slots capacity. Status toggles directly via button.
+  // Inline edit state for slots capacity.
   editingId = signal<string | null>(null);
   editSlots = signal<number | null>(null);
+
+  // Confirm dialog state (replaces native confirm() popups).
+  confirmDialogOpen = signal(false);
+  confirmPayload = signal<{ action: 'deleteAgency' | 'toggleStatus'; agency: AgencyCard; newStatus: AgencyCard['status'] } | null>(null);
+  confirmIsDeleting = signal(false);
+
+  confirmTitle = signal('');
+  confirmMessage = signal('');
+  confirmLabel = signal('Delete');
 
 
   // Applicant list modal state (which students applied to which agency)
   showApplicantsModal = signal(false);
+
   selectedAgencyForApplicants = signal<string | null>(null);
   applicants = signal<{ id: string; reference_number: string; host_company: string; position_role: string; status: string; submitted_at: string | null; student_name: string | null; student_id: string | null; email: string | null }[]>([]);
 
@@ -67,16 +91,24 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   showAddForm = signal(false);
   newName = signal('');
   newCountry = signal('');
+  newCountryId = signal<string | null>(null);
   newLocation = signal('');
   newDescription = signal('');
   newSlots = signal('');
   newStatus = signal<'active' | 'inactive'>('active');
 
   searchQuery = '';
+  countryFilter = signal<string>('');
   activeCategory: AgencyCategory = 'partner-countries';
+
+  // Manage Countries modal state
+  showCountryModal = signal(false);
+  showAddCountryRow = signal(false);
+  confirmTarget = signal<Country | null>(null);
 
   async ngOnInit(): Promise<void> {
     await this.loadAgencies();
+    await this.loadCountries();
     this.subscribeToApplicationChanges();
   }
 
@@ -159,13 +191,15 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
 
   get filteredAgencies(): AgencyCard[] {
     const query = this.searchQuery.toLowerCase().trim();
+    const country = this.countryFilter();
     return this.agencies().filter((agency) => {
       const matchCategory = agency.category === this.activeCategory;
+      const matchCountry = !country || agency.country === country;
       const matchSearch =
         !query ||
         agency.name.toLowerCase().includes(query) ||
         agency.location.toLowerCase().includes(query);
-      return matchCategory && matchSearch;
+      return matchCategory && matchCountry && matchSearch;
     });
   }
 
@@ -191,9 +225,28 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     this.error.set(null);
 
     try {
+      // 1. Load active countries for country name lookup + dropdowns.
+      const { data: countriesData, error: countriesError } = await supabase
+        .from('countries')
+        .select('id, name, is_active, created_at')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (countriesError) throw countriesError;
+      const countryRows = (countriesData || []) as Country[];
+      this.managedCountries.set(countryRows);
+
+      // Build a map of country_id -> country name for display lookup.
+      const countryMap = new Map<string, string>();
+      countryRows.forEach((c) => countryMap.set(c.id, c.name));
+
+      // Expose country names as strings for template compatibility.
+      this.countries.set(countryRows.map((c) => c.name));
+
+      // 2. Load companies from Supabase (now includes country_id).
       const { data: companies, error: companiesError } = await supabase
         .from('companies')
-        .select('id, name, address, industry, is_active, slots')
+        .select('id, name, address, industry, is_active, slots, country_id')
         .order('name', { ascending: true });
 
       if (companiesError) throw companiesError;
@@ -218,7 +271,10 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
           id: r.id,
           name: r.name,
           category: 'partner-countries',
-          country: this.extractCountry(r.address),
+          countryId: r.country_id || null,
+          country: r.country_id
+            ? countryMap.get(r.country_id) ?? this.extractCountry(r.address)
+            : this.extractCountry(r.address),
           location: r.address || '—',
           description: r.industry || null,
           interns: counts[r.name] || 0,
@@ -233,6 +289,89 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     } finally {
       this.loading.set(false);
       this.cdr.markForCheck();
+    }
+  }
+
+  /** Load active countries from the countries table for the managed dropdowns. */
+  async loadCountries(): Promise<void> {
+    try {
+      const { data: rows, error } = await supabase
+        .from('countries')
+        .select('id, name, is_active, created_at')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      const countryRows = (rows || []) as Country[];
+      this.managedCountries.set(countryRows);
+      this.countries.set(countryRows.map((c) => c.name));
+    } catch (err) {
+      console.error('[PartnerAgencies] Error loading countries:', err);
+      this.countryMgmtError.set(
+        err instanceof Error ? err.message : 'Failed to load countries.'
+      );
+    }
+  }
+
+  // Country confirm dialog state.
+  confirmCountryDialogOpen = signal(false);
+  confirmCountryTitle = signal('');
+  confirmCountryMessage = signal('');
+
+  /** Open the confirm dialog to delete a country. */
+  openCountryDelete(country: Country): void {
+    this.confirmTarget.set(country);
+    this.countryMgmtError.set(null);
+    this.confirmCountryTitle.set('Delete Country?');
+    this.confirmCountryMessage.set(`This will remove <strong>${country.name}</strong>. This cannot be undone.`);
+    this.confirmCountryDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  /** Cancel the country delete confirm dialog. */
+  cancelCountryDelete(): void {
+    this.confirmTarget.set(null);
+    this.confirmCountryDialogOpen.set(false);
+    this.cdr.markForCheck();
+  }
+
+  /** Soft-delete a country (sets is_active = false) so it no longer appears in dropdowns. */
+  async deleteCountry(): Promise<void> {
+    const country = this.confirmTarget();
+    if (!country) return;
+
+    this.countryMgmtError.set(null);
+
+    try {
+      const oldValues = { is_active: country.is_active };
+      const newValues = { is_active: false };
+
+      const { error } = await supabase
+        .from('countries')
+        .update(newValues)
+        .eq('id', country.id);
+
+      if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'update',
+        tableName: 'countries',
+        recordId: country.id,
+        oldValues,
+        newValues,
+      });
+
+      await this.loadCountries();
+      await this.loadAgencies();
+      this.confirmTarget.set(null);
+      this.confirmCountryDialogOpen.set(false);
+      this.cdr.markForCheck();
+    } catch (err) {
+      console.error('[PartnerAgencies] Delete country failed:', err);
+      this.countryMgmtError.set(
+        err instanceof Error ? err.message : 'Failed to delete country.'
+      );
     }
   }
 
@@ -305,17 +444,37 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  /** Toggle agency active/inactive status in Supabase. */
-  async toggleStatus(agency: AgencyCard): Promise<void> {
+  /** Request confirmation before toggling agency active/inactive status. */
+  toggleStatus(agency: AgencyCard): void {
     const newStatus: AgencyCard['status'] = agency.status === 'active' ? 'inactive' : 'active';
+    this.confirmPayload.set({ action: 'toggleStatus', agency, newStatus });
+    this.confirmTitle.set('Toggle agency status?');
+    this.confirmMessage.set(`This will change the status of <strong>${agency.name}</strong>.`);
+    this.confirmLabel.set('Toggle');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
 
+  /** Perform the confirmed status toggle on Supabase. */
+  private async performToggleStatus(agency: AgencyCard, newStatus: AgencyCard['status']): Promise<void> {
     try {
+      const oldValues = { is_active: agency.status === 'active' };
+      const newValues = { is_active: newStatus === 'active' };
+
       const { error } = await supabase
         .from('companies')
-        .update({ is_active: newStatus === 'active' })
+        .update(newValues)
         .eq('id', agency.id);
 
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'update',
+        tableName: 'companies',
+        recordId: agency.id,
+        oldValues,
+        newValues,
+      });
 
       this.agencies.update((items) =>
         items.map((a) => (a.id === agency.id ? { ...a, status: newStatus } : a))
@@ -348,13 +507,24 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     }
 
     try {
+      const oldValues = { slots: agency.slots };
+      const newValues = { slots };
+
       // 1. Update the company's slots capacity.
       const { error } = await supabase
         .from('companies')
-        .update({ slots })
+        .update(newValues)
         .eq('id', agency.id);
 
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'update',
+        tableName: 'companies',
+        recordId: agency.id,
+        oldValues,
+        newValues,
+      });
 
       // 2. Sync the slots to all linked internship postings so the student page
       //    reflects the admin-designated capacity.
@@ -376,11 +546,88 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Open the Manage Countries modal. */
+  openCountryModal(): void {
+    this.showCountryModal.set(true);
+    this.countryMgmtError.set(null);
+    this.cdr.markForCheck();
+  }
+
+  /** Close the Manage Countries modal. */
+  closeCountryModal(): void {
+    this.showCountryModal.set(false);
+    this.showAddCountryRow.set(false);
+    this.cdr.markForCheck();
+  }
+
+  /** Add a new country to the managed list. */
+  async addCountry(): Promise<void> {
+    const name = this.newCountry().trim();
+    if (!name) {
+      alert('Country name is required.');
+      return;
+    }
+
+    this.countryMgmtError.set(null);
+
+    try {
+      const { error } = await supabase
+        .from('countries')
+        .insert({ name, is_active: true });
+
+      if (error) throw error;
+
+      this.newCountry.set('');
+      await this.loadCountries();
+      await this.loadAgencies();
+      this.cdr.markForCheck();
+    } catch (err) {
+      console.error('[PartnerAgencies] Add country failed:', err);
+      this.countryMgmtError.set(
+        err instanceof Error ? err.message : 'Failed to add country. It may already exist.'
+      );
+    }
+  }
+
+  /** Run the action the user confirmed in the confirm dialog. */
+  async handleConfirm(): Promise<void> {
+    const payload = this.confirmPayload();
+    if (!payload) return;
+
+    this.confirmIsDeleting.set(true);
+    try {
+      if (payload.action === 'deleteAgency') {
+        const { error } = await supabase.from('companies').delete().eq('id', payload.agency.id);
+        if (error) throw error;
+        this.agencies.update((items) => items.filter((a) => a.id !== payload.agency.id));
+      } else if (payload.action === 'toggleStatus') {
+        await this.performToggleStatus(payload.agency, payload.newStatus);
+      }
+    } catch (err) {
+      console.error('[PartnerAgencies] Confirmed action failed:', err);
+      alert('Action failed. Please try again.');
+    } finally {
+      this.confirmIsDeleting.set(false);
+      this.confirmDialogOpen.set(false);
+      this.confirmPayload.set(null);
+      this.cdr.markForCheck();
+    }
+  }
+
+  /** Cancel the confirm dialog. */
+  handleConfirmCancel(): void {
+    this.confirmDialogOpen.set(false);
+    this.confirmPayload.set(null);
+    this.confirmIsDeleting.set(false);
+    this.cdr.markForCheck();
+  }
+
   /** Open the add-agency form. */
   openAddForm(): void {
     this.showAddForm.set(true);
     this.newName.set('');
     this.newCountry.set('');
+    this.newCountryId.set(null);
     this.newLocation.set('');
     this.newDescription.set('');
     this.newSlots.set('');
@@ -392,6 +639,13 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   closeAddForm(): void {
     this.showAddForm.set(false);
     this.cdr.markForCheck();
+  }
+
+  /** Sync the country name text input when the user picks a country from the dropdown. */
+  onCountryIdChange(countryId: string): void {
+    this.newCountryId.set(countryId);
+    const country = this.managedCountries().find((c) => c.id === countryId);
+    this.newCountry.set(country?.name || '');
   }
 
   /** Insert a new agency into Supabase companies table. */
@@ -408,13 +662,18 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Build address combining location + country so extractCountry() can derive it later.
+    const addressParts = [location, country].filter(Boolean);
+    const address = addressParts.length > 0 ? addressParts.join(', ') : null;
+
     try {
       const { error } = await supabase.from('companies').insert({
         name,
-        address: location || null,
+        address,
         industry: description,
         slots,
         is_active: status === 'active',
+        country_id: this.newCountryId() || null,
       });
 
       if (error) throw error;
@@ -427,22 +686,13 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Delete an agency from Supabase companies table. */
-  async deleteAgency(agency: AgencyCard): Promise<void> {
-    if (!confirm(`Remove agency "${agency.name}"?`)) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from('companies').delete().eq('id', agency.id);
-
-      if (error) throw error;
-
-      this.agencies.update((items) => items.filter((a) => a.id !== agency.id));
-      this.cdr.markForCheck();
-    } catch (err) {
-      console.error('[PartnerAgencies] Delete failed:', err);
-      alert('Failed to delete agency. Please try again.');
-    }
+  /** Request confirmation before deleting an agency from Supabase. */
+  deleteAgency(agency: AgencyCard): void {
+    this.confirmPayload.set({ action: 'deleteAgency', agency, newStatus: agency.status });
+    this.confirmTitle.set('Delete agency?');
+    this.confirmMessage.set(`This will remove <strong>${agency.name}</strong> permanently. This cannot be undone.`);
+    this.confirmLabel.set('Delete');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
   }
 }

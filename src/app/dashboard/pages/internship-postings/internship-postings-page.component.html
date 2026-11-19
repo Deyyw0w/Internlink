@@ -1,7 +1,7 @@
 <div class="internship-postings-page bg-[#f1f5f9] min-h-full">
 
   <!-- Header & Filters -->
-  <section class="bg-[#1E3A5F] text-white rounded-2xl p-8 mb-8 page-header">
+  <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-8 mb-8 page-header">
     <h1 class="page-header__title text-3xl font-bold text-white mb-2">Internship Postings</h1>
     <p class="page-header__subtitle text-slate-300 text-sm mb-6 leading-relaxed max-w-xl">
       Explore opportunities abroad with our global partner network
@@ -11,15 +11,30 @@
       <input
         type="text"
         placeholder="Search by country, track, or degree…"
-        [(ngModel)]="searchQuery"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
         class="page-header__search min-w-52 flex-1 p-[0.9rem_1rem] rounded-xl text-[0.95rem] bg-white/10 border-[1px_solid_rgba(255,255,255,0.2)] text-white outline-none"
       />
       <div class="relative">
         <select
-          [(ngModel)]="selectedDegreeFilter"
+          [ngModel]="departmentFilter()"
+          (ngModelChange)="departmentFilter.set($event)"
+          class="page-header__filter min-w-[200px] flex-1 p-[0.9rem_1rem] rounded-xl text-[0.9rem] bg-white/10 border-[1px_solid_rgba(255,255,255,0.2)] text-white outline-none appearance-none pr-10 cursor-pointer"
+        >
+          <option value="" class="text-black">All Departments</option>
+          <option *ngFor="let dept of availableDepartments()" [value]="dept" class="text-black">{{ dept }}</option>
+        </select>
+        <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m6 6 6 6 6-6"/>
+        </svg>
+      </div>
+      <div class="relative">
+        <select
+          [ngModel]="selectedDegreeFilter()"
+          (ngModelChange)="selectedDegreeFilter.set($event)"
           class="page-header__filter min-w-[220px] flex-1 p-[0.9rem_1rem] rounded-xl text-[0.9rem] bg-white/10 border-[1px_solid_rgba(255,255,255,0.2)] text-white outline-none appearance-none pr-10 cursor-pointer"
         >
-          <option value="">All Degree Programs</option>
+          <option value="" class="text-black">All Courses</option>
           <option *ngFor="let deg of availableDegreeFilters" [value]="deg" class="text-black">{{ deg }}</option>
         </select>
         <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -32,10 +47,6 @@
   <!-- Partner Badge -->
   <div class="partner-badge w-full mb-8 px-6 flex items-center gap-4 justify-between">
     <span class="partner-badge__label text-sm font-bold uppercase tracking-widest text-[#d4a017]">PARTNERED COUNTRIES</span>
-    <span class="partner-badge__rating inline-flex items-center gap-1.5 bg-[#0f172a] text-amber-400 px-[0.9rem] py-2 rounded-full font-bold text-[0.9rem]">
-      <svg class="icon-star h-4 w-4 fill-current" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z"/></svg>
-      4.8
-    </span>
   </div>
 
   <!-- Loading State -->

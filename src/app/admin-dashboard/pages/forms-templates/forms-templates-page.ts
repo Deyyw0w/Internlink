@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, inject, OnInit, OnDestroy, signal } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
+import { AuditLogService } from '../../../shared/services/audit-log.service';
 
 const STORAGE_BUCKET = 'forms-templates';
 
@@ -50,7 +51,7 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
     <main class="w-full px-8 py-6 space-y-6">
 
       <!-- Header Banner -->
-      <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="flex flex-col gap-1">
           <h2 class="text-xl font-extrabold tracking-tight text-white">Forms &amp; Templates</h2>
           <p class="text-sm text-slate-300 leading-relaxed max-w-xl">
@@ -62,7 +63,7 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
         <button
           type="button"
           (click)="openAddModal()"
-          class="inline-flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162C49] text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors"
+          class="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add Form / Template
@@ -522,6 +523,7 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
 })
 export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly auditLog = inject(AuditLogService);
 
   private templatesSubscription: any = null;
 
@@ -790,6 +792,15 @@ export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
 
       if (this.editingTemplate()) {
         // Update existing: only fields provided are sent
+        const oldValues = {
+          title: this.editingTemplate()!.title,
+          description: this.editingTemplate()!.description,
+          category: this.editingTemplate()!.category,
+          sub_type: this.editingTemplate()!.sub_type,
+          is_active: this.editingTemplate()!.is_active,
+          file_url: this.editingTemplate()!.file_url,
+          version: this.editingTemplate()!.version,
+        };
         const updates: any = {
           title: title.trim(),
           description: description.trim() || null,
@@ -812,6 +823,14 @@ export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
           .eq('id', id);
 
         if (error) throw error;
+
+        await this.auditLog.logActivity({
+          actionType: 'update',
+          tableName: 'forms_templates',
+          recordId: id,
+          oldValues,
+          newValues: updates,
+        });
       } else {
         // Create new (file required for new templates)
         if (!fileUrl) {
@@ -819,24 +838,36 @@ export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
           return;
         }
 
-        const { error } = await supabase
+        const newValues = {
+          title: title.trim(),
+          description: description.trim() || null,
+          category,
+          sub_type: sub_type.trim() || null,
+          file_url: fileUrl,
+          file_path: filePath,
+          file_type: fileType,
+          version: 1,
+          is_active,
+          uploaded_by: 'admin',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data: inserted, error } = await supabase
           .from('forms_templates')
-          .insert({
-            title: title.trim(),
-            description: description.trim() || null,
-            category,
-            sub_type: sub_type.trim() || null,
-            file_url: fileUrl,
-            file_path: filePath,
-            file_type: fileType,
-            version: 1,
-            is_active,
-            uploaded_by: 'admin',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+          .insert(newValues)
+          .select('id')
+          .single();
 
         if (error) throw error;
+
+        await this.auditLog.logActivity({
+          actionType: 'create',
+          tableName: 'forms_templates',
+          recordId: inserted.id,
+          oldValues: null,
+          newValues,
+        });
       }
 
       this.closeFormModal();
@@ -855,12 +886,26 @@ export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
   /** Toggle active status of a template. */
   async toggleActive(item: FormTemplate): Promise<void> {
     try {
+      const oldValues = { is_active: item.is_active };
+      const newValues = {
+        is_active: !item.is_active,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('forms_templates')
-        .update({ is_active: !item.is_active, updated_at: new Date().toISOString() })
+        .update(newValues)
         .eq('id', item.id);
 
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'update',
+        tableName: 'forms_templates',
+        recordId: item.id,
+        oldValues,
+        newValues,
+      });
 
       await this.loadTemplates();
       this.cdr.markForCheck();
@@ -928,18 +973,34 @@ export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
 
       if (!fileUrl) throw new Error('Failed to generate file URL.');
 
+      const oldValues = {
+        file_url: item.file_url,
+        file_path: item.file_path,
+        file_type: item.file_type,
+        version: item.version,
+      };
+      const newValues = {
+        file_url: fileUrl,
+        file_path: storagePath,
+        file_type: file.type || null,
+        version: (item.version || 1) + 1,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('forms_templates')
-        .update({
-          file_url: fileUrl,
-          file_path: storagePath,
-          file_type: file.type || null,
-          version: (item.version || 1) + 1,
-          updated_at: new Date().toISOString(),
-        })
+        .update(newValues)
         .eq('id', item.id);
 
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'update',
+        tableName: 'forms_templates',
+        recordId: item.id,
+        oldValues,
+        newValues,
+      });
 
       this.closeReplaceModal();
       await this.loadTemplates();
@@ -975,8 +1036,23 @@ export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
     this.isDeletingTemplate.set(true);
 
     try {
+      const oldValues = {
+        title: item.title,
+        category: item.category,
+        file_url: item.file_url,
+        is_active: item.is_active,
+      };
+
       const { error } = await supabase.from('forms_templates').delete().eq('id', item.id);
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'delete',
+        tableName: 'forms_templates',
+        recordId: item.id,
+        oldValues,
+        newValues: null,
+      });
 
       this.closeDeleteModal();
       await this.loadTemplates();

@@ -6,6 +6,8 @@ import { Dashboard } from './dashboard/dashboard';
 import { DocumentChecklistPageComponent as AdminDocumentChecklistPageComponent } from './admin-dashboard/pages/document-checklist/document-checklist-page';
 import { FormsTemplatesPageComponent } from './admin-dashboard/pages/forms-templates/forms-templates-page';
 import { Login } from './login/login';
+import { FirstLoginChangePasswordPageComponent } from './login/first-login-change-password';
+import { AdminAuditLogsPageComponent } from './admin-dashboard/pages/audit-logs/audit-logs-page';
 import { NotificationLogsPageComponent } from './admin-dashboard/pages/notification-logs/notification-logs-page';
 import { PartnerAgenciesPageComponent } from './admin-dashboard/pages/partner-agencies/partner-agencies-page';
 import { DashboardPageComponent } from './dashboard/pages/dashboard/dashboard-page';
@@ -24,6 +26,7 @@ import { requireAuth, requireGuest, requireRole } from './auth/auth.guard';
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', component: Login, canActivate: [requireGuest] },
+  { path: 'first-login-change-password', component: FirstLoginChangePasswordPageComponent, canActivate: [requireAuth] },
   { path: 'dashboard', component: Dashboard, canActivate: [requireAuth, requireRole(['student'])], children: [
     { path: '', redirectTo: 'overview', pathMatch: 'full' },
     { path: 'overview', component: DashboardPageComponent },
@@ -48,6 +51,7 @@ export const routes: Routes = [
       { path: 'forms-templates', component: FormsTemplatesPageComponent },
       { path: 'reports-analytics', component: ReportsAnalyticsPageComponent },
       { path: 'notification-logs', component: NotificationLogsPageComponent },
+      { path: 'audit-logs', component: AdminAuditLogsPageComponent },
       { path: 'account-settings', component: AdminAccountSettingsPageComponent },
       { path: 'accounts-management', component: AccountsManagementPageComponent, canActivate: [requireAuth, requireRole(['admin'])] },
     ],

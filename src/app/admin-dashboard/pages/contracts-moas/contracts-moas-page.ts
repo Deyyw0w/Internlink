@@ -2,6 +2,8 @@ import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit, signal, comput
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { AuditLogService } from '../../../shared/services/audit-log.service';
 
 const STORAGE_BUCKET = 'contracts-moas';
 
@@ -39,12 +41,13 @@ type ContractStatus = 'draft' | 'active' | 'expired' | 'pending-renewal';
 @Component({
   selector: 'app-contracts-moas-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   templateUrl: './contracts-moas-page.html',
   styleUrl: './contracts-moas-page.css'
 })
 export class ContractsMoasPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly auditLog = inject(AuditLogService);
 
   private categoriesSubscription: any = null;
   private contractsSubscription: any = null;
@@ -56,6 +59,15 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
 
   loading = signal(false);
   error = signal<string | null>(null);
+
+  // Confirm dialog state (replaces native confirm() popups).
+  confirmDialogOpen = signal(false);
+  confirmPayload = signal<{ action: 'deleteCategory'; category: ContractCategory } | { action: 'deleteContract'; contract: ContractItem } | null>(null);
+  confirmIsDeleting = signal(false);
+
+  confirmTitle = signal('');
+  confirmMessage = signal('');
+  confirmLabel = signal('Delete');
 
   // Search + filters
   searchQuery = signal('');
@@ -370,23 +382,52 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
 
     try {
       if (this.editingCategory()) {
+        const oldValues = {
+          name: this.editingCategory()!.name,
+          color: this.editingCategory()!.color,
+          is_active: this.editingCategory()!.is_active,
+        };
+        const newValues = { name: name.trim(), color, is_active };
+
         const { error } = await supabase
           .from('contract_categories')
-          .update({ name: name.trim(), color, is_active, updated_at: new Date().toISOString() })
+          .update(newValues)
           .eq('id', this.editingCategory()!.id);
 
         if (error) throw error;
+
+        await this.auditLog.logActivity({
+          actionType: 'update',
+          tableName: 'contract_categories',
+          recordId: this.editingCategory()!.id,
+          oldValues,
+          newValues,
+        });
+
+        this.closeCategoryModal();
+        await this.loadData();
+        this.cdr.markForCheck();
       } else {
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from('contract_categories')
-          .insert({ name: name.trim(), color, is_active, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+          .insert({ name: name.trim(), color, is_active })
+          .select('id')
+          .single();
 
         if (error) throw error;
-      }
 
-      this.closeCategoryModal();
-      await this.loadData();
-      this.cdr.markForCheck();
+        await this.auditLog.logActivity({
+          actionType: 'create',
+          tableName: 'contract_categories',
+          recordId: inserted.id,
+          oldValues: null,
+          newValues: { name: name.trim(), color, is_active },
+        });
+
+        this.closeCategoryModal();
+        await this.loadData();
+        this.cdr.markForCheck();
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save category.';
       console.error('[ContractsMoas] Save category failed:', message);
@@ -397,21 +438,36 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Delete a category (blocked if contracts reference it). */
-  async deleteCategory(cat: ContractCategory): Promise<void> {
-    if (!window.confirm(`Delete category "${cat.name}"? Contracts using this category will have their category cleared. This cannot be undone.`)) {
-      return;
-    }
+  /** Request confirmation before deleting a contract category. */
+  deleteCategory(cat: ContractCategory): void {
+    this.confirmPayload.set({ action: 'deleteCategory', category: cat });
+    this.confirmTitle.set('Delete category?');
+    this.confirmMessage.set(`This will remove category <strong>${cat.name}</strong>. Contracts using it will have their category cleared. This cannot be undone.`);
+    this.confirmLabel.set('Delete');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
 
+  /** Perform the confirmed category deletion on Supabase. */
+  private async performDeleteCategory(cat: ContractCategory): Promise<void> {
     this.isDeletingCategory.set(cat.id);
-
     try {
-      const { error } = await supabase
-        .from('contract_categories')
-        .delete()
-        .eq('id', cat.id);
+      const oldValues = {
+        name: cat.name,
+        color: cat.color,
+        is_active: cat.is_active,
+      };
 
+      const { error } = await supabase.from('contract_categories').delete().eq('id', cat.id);
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'delete',
+        tableName: 'contract_categories',
+        recordId: cat.id,
+        oldValues,
+        newValues: null,
+      });
 
       await this.loadData();
       this.cdr.markForCheck();
@@ -421,11 +477,11 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       alert(`Failed to delete category: ${message}`);
     } finally {
       this.isDeletingCategory.set(null);
-      this.cdr.markForCheck();
     }
   }
 
-  // ── Upload contract modal ─────────────────────────────────────────
+
+  //── Upload contract modal ─────────────────────────────────────────
 
   /** Open the upload contract modal. User picks a category first. */
   openUploadModal(): void {
@@ -515,25 +571,37 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
         return;
       }
 
-      const { error } = await supabase
+      const newContractValues = {
+        category_id,
+        company_id: company_id || null,
+        title: title.trim(),
+        description: description.trim() || null,
+        contract_type,
+        file_url: fileUrl,
+        file_path: filePath,
+        file_type: fileType,
+        start_date: start_date || null,
+        end_date: end_date || null,
+        status,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: inserted, error } = await supabase
         .from('contracts_moas')
-        .insert({
-          category_id,
-          company_id: company_id || null,
-          title: title.trim(),
-          description: description.trim() || null,
-          contract_type,
-          file_url: fileUrl,
-          file_path: filePath,
-          file_type: fileType,
-          start_date: start_date || null,
-          end_date: end_date || null,
-          status,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+        .insert(newContractValues)
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'create',
+        tableName: 'contracts_moas',
+        recordId: inserted.id,
+        oldValues: null,
+        newValues: newContractValues,
+      });
 
       this.closeUploadModal();
       await this.loadData();
@@ -623,25 +691,44 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
         fileType = file.type || null;
       }
 
+      const oldValues = {
+        title: this.editingContract()?.title,
+        description: this.editingContract()?.description,
+        contract_type: this.editingContract()?.contract_type,
+        category_id: this.editingContract()?.category_id,
+        company_id: this.editingContract()?.company_id,
+        file_url: this.editingContract()?.file_url,
+        status: this.editingContract()?.status,
+      };
+      const newValues = {
+        title: title.trim(),
+        description: description.trim() || null,
+        contract_type,
+        category_id: category_id || null,
+        company_id: company_id || null,
+        file_url: fileUrl,
+        file_path: filePath,
+        file_type: fileType,
+        start_date: start_date || null,
+        end_date: end_date || null,
+        status,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('contracts_moas')
-        .update({
-          title: title.trim(),
-          description: description.trim() || null,
-          contract_type,
-          category_id: category_id || null,
-          company_id: company_id || null,
-          file_url: fileUrl,
-          file_path: filePath,
-          file_type: fileType,
-          start_date: start_date || null,
-          end_date: end_date || null,
-          status,
-          updated_at: new Date().toISOString(),
-        })
+        .update(newValues)
         .eq('id', id);
 
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'update',
+        tableName: 'contracts_moas',
+        recordId: id,
+        oldValues,
+        newValues,
+      });
 
       this.closeEditContractModal();
       await this.loadData();
@@ -709,17 +796,32 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
 
       if (!fileUrl) throw new Error('Failed to generate file URL.');
 
+      const oldValues = {
+        file_url: item.file_url,
+        file_path: item.file_path,
+        file_type: item.file_type,
+      };
+      const newValues = {
+        file_url: fileUrl,
+        file_path: storagePath,
+        file_type: file.type || null,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('contracts_moas')
-        .update({
-          file_url: fileUrl,
-          file_path: storagePath,
-          file_type: file.type || null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(newValues)
         .eq('id', item.id);
 
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'update',
+        tableName: 'contracts_moas',
+        recordId: item.id,
+        oldValues,
+        newValues,
+      });
 
       this.closeReplaceFileModal();
       await this.loadData();
@@ -734,26 +836,43 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Delete a contract (and its storage file). */
-  async deleteContract(item: ContractItem): Promise<void> {
-    if (!window.confirm(`Delete contract "${item.title}"? This cannot be undone.`)) {
-      return;
-    }
+  /** Request confirmation before deleting a contract (and its storage file). */
+  deleteContract(item: ContractItem): void {
+    this.confirmPayload.set({ action: 'deleteContract', contract: item });
+    this.confirmTitle.set('Delete contract?');
+    this.confirmMessage.set(`This will remove contract <strong>${item.title}</strong> and its file. This cannot be undone.`);
+    this.confirmLabel.set('Delete');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
 
+  /** Perform the confirmed contract deletion on Supabase. */
+  private async performDeleteContract(item: ContractItem): Promise<void> {
     this.isDeletingContract.set(item.id);
-
     try {
       // Remove the storage file if present
       if (item.file_path) {
         await supabase.storage.from(STORAGE_BUCKET).remove([item.file_path]);
       }
 
-      const { error } = await supabase
-        .from('contracts_moas')
-        .delete()
-        .eq('id', item.id);
+      const oldValues = {
+        title: item.title,
+        category_id: item.category_id,
+        company_id: item.company_id,
+        status: item.status,
+        file_url: item.file_url,
+      };
 
+      const { error } = await supabase.from('contracts_moas').delete().eq('id', item.id);
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'delete',
+        tableName: 'contracts_moas',
+        recordId: item.id,
+        oldValues,
+        newValues: null,
+      });
 
       await this.loadData();
       this.cdr.markForCheck();
@@ -765,6 +884,37 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       this.isDeletingContract.set(null);
       this.cdr.markForCheck();
     }
+  }
+
+  /** Run the action the user confirmed in the confirm dialog. */
+  async handleConfirm(): Promise<void> {
+    const payload = this.confirmPayload();
+    if (!payload) return;
+
+    this.confirmIsDeleting.set(true);
+    try {
+      if (payload.action === 'deleteCategory') {
+        await this.performDeleteCategory(payload.category);
+      } else if (payload.action === 'deleteContract') {
+        await this.performDeleteContract(payload.contract);
+      }
+    } catch (err) {
+      console.error('[ContractsMoas] Confirmed action failed:', err);
+      alert('Action failed. Please try again.');
+    } finally {
+      this.confirmIsDeleting.set(false);
+      this.confirmDialogOpen.set(false);
+      this.confirmPayload.set(null);
+      this.cdr.markForCheck();
+    }
+  }
+
+  /** Cancel the confirm dialog. */
+  handleConfirmCancel(): void {
+    this.confirmDialogOpen.set(false);
+    this.confirmPayload.set(null);
+    this.confirmIsDeleting.set(false);
+    this.cdr.markForCheck();
   }
 
   /** Open (signed URL) a contract file in a new tab. */

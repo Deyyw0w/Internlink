@@ -59,30 +59,42 @@ export class AuthService {
         return { success: false, error: signInError.message };
       }
 
-      // 3-a. Look up the degree's department info from degree_programs so the profile
-      //      stores the department_name and department_abbreviation (not just the degree).
-      const { data: degRow, error: degError } = await supabase
-        .from('degree_programs')
-        .select('department, department_abbreviation, practicum_hours')
-        .eq('name', data.degreeProgram)
-        .single();
+      // 3-a. Resolve department info. Students look up their degree's department.
+      // Admin accounts are assigned to the GLOCAL degree program, so the trigger
+      // (migration 006) populates department_name/abbreviation from degree_programs.
+      let departmentName: string | null = null;
+      let departmentAbbreviation: string | null = null;
+      let practicumHours: number | null = null;
 
-      const departmentName = (degRow?.department || null) ?? null;
-      const departmentAbbreviation = (degRow?.department_abbreviation || null) ?? null;
-      const practicumHours = degRow?.practicum_hours ?? null;
+      if (data.role === 'student' && data.degreeProgram) {
+        const { data: degRow, error: degError } = await supabase
+          .from('degree_programs')
+          .select('department, department_abbreviation, practicum_hours')
+          .eq('name', data.degreeProgram)
+          .single();
 
-      // 3-b. Insert the student profile (linked via Supabase Auth uid)
+        if (!degError && degRow) {
+          departmentName = degRow.department ?? null;
+          departmentAbbreviation = degRow.department_abbreviation ?? null;
+          practicumHours = degRow.practicum_hours ?? null;
+        } else {
+          console.warn('[AuthService] No degree_program match for department lookup:', degError?.message ?? 'not found');
+        }
+      }
+
+      // 3-b. Insert the profile (linked via Supabase Auth uid)
       const { error: profileError } = await supabase.from('profiles').insert({
         id: user.id, // Supabase Auth UUID → primary key / FK to auth.users
         student_id: data.studentId,
         full_name: data.fullName,
         email: data.email,
-        degree_program: data.degreeProgram,
+        degree_program: data.role === 'admin' ? 'GLOCAL' : (data.role === 'student' ? data.degreeProgram : null),
         department_name: departmentName,
         department_abbreviation: departmentAbbreviation,
         practicum_hours: practicumHours,
         mobile: data.mobile,
         role: data.role,
+        must_change_password: data.role === 'student', // students must change default password on first login
       });
 
       if (profileError) {

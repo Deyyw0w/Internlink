@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit, signal, comput
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 type DocumentStatus = 'verified' | 'pending' | 'rejected';
 
@@ -25,7 +26,7 @@ interface DocumentItem {
 @Component({
   selector: 'app-document-checklist-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   templateUrl: './document-checklist-page.component.html',
 })
 export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
@@ -37,6 +38,15 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
   loading = signal(false);
   error = signal<string | null>(null);
   isDeletingDocument = signal<string | null>(null);
+
+  // Confirm dialog state (replaces native confirm() popups).
+  confirmDialogOpen = signal(false);
+  confirmPayload = signal<{ action: 'deleteDocument'; item: DocumentItem } | null>(null);
+  confirmIsDeleting = signal(false);
+
+  confirmTitle = signal('');
+  confirmMessage = signal('');
+  confirmLabel = signal('Delete');
 
   searchQuery = signal('');
   statusFilter = signal<DocumentStatus | ''>('');
@@ -259,14 +269,19 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Delete a document requirement from Supabase. */
-  async deleteDocument(item: DocumentItem): Promise<void> {
-    if (!window.confirm(`Delete document "${item.fileName}" for ${item.studentName}? This cannot be undone.`)) {
-      return;
-    }
+  /** Request confirmation before deleting a document requirement. */
+  deleteDocument(item: DocumentItem): void {
+    this.confirmPayload.set({ action: 'deleteDocument', item });
+    this.confirmTitle.set('Delete document?');
+    this.confirmMessage.set(`This will delete <strong>${item.fileName}</strong> for ${item.studentName}. This cannot be undone.`);
+    this.confirmLabel.set('Delete');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
 
+  /** Perform the confirmed document deletion on Supabase. */
+  private async performDeleteDocument(item: DocumentItem): Promise<void> {
     this.isDeletingDocument.set(item.id);
-
     try {
       const { error } = await supabase
         .from('student_requirements')
@@ -284,6 +299,35 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     } finally {
       this.isDeletingDocument.set(null);
     }
+  }
+
+  /** Run the action the user confirmed in the confirm dialog. */
+  async handleConfirm(): Promise<void> {
+    const payload = this.confirmPayload();
+    if (!payload) return;
+
+    this.confirmIsDeleting.set(true);
+    try {
+      if (payload.action === 'deleteDocument') {
+        await this.performDeleteDocument(payload.item);
+      }
+    } catch (err) {
+      console.error('[DocValidation] Confirmed action failed:', err);
+      alert('Action failed. Please try again.');
+    } finally {
+      this.confirmIsDeleting.set(false);
+      this.confirmDialogOpen.set(false);
+      this.confirmPayload.set(null);
+      this.cdr.markForCheck();
+    }
+  }
+
+  /** Cancel the confirm dialog. */
+  handleConfirmCancel(): void {
+    this.confirmDialogOpen.set(false);
+    this.confirmPayload.set(null);
+    this.confirmIsDeleting.set(false);
+    this.cdr.markForCheck();
   }
 
   /** Subscribe to real-time requirement status changes so the validation queue updates live. */

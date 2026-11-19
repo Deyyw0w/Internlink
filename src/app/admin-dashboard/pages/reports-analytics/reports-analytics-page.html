@@ -2,7 +2,7 @@
 <main class="w-full px-8 py-6 space-y-8">
 
   <!-- Header -->
-  <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+  <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     <div class="flex flex-col gap-2">
       <h1 class="text-xl font-extrabold tracking-tight text-white">Reports &amp; Analytics</h1>
       <p class="text-xs text-slate-300 mt-1">
@@ -12,43 +12,51 @@
     </div>
 
     <!-- Date range selector -->
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap items-center gap-2">
       <label class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Range</label>
+
+      <!-- Preset range buttons + Custom button (always visible) -->
+      <ng-container *ngFor="let p of datePresets">
+        <button
+          *ngIf="p.key !== 'custom'"
+          (click)="setDateRange(p.key)"
+          [ngClass]="{
+            'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-md': dateRange() === p.key,
+            'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 shadow-sm': dateRange() !== p.key
+          }"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border-b-2 border-transparent"
+        >
+          {{ p.label }}
+        </button>
+      </ng-container>
       <button
-        *ngFor="let p of datePresets"
-        (click)="setDateRange(p.key)"
+        (click)="setDateRange('custom')"
         [ngClass]="{
-          'bg-white text-[#1E3A5F]': dateRange() === p.key,
-          'bg-slate-700/30 text-white': dateRange() !== p.key
+          'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-md': dateRange() === 'custom',
+          'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 shadow-sm': dateRange() !== 'custom'
         }"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border-b-2 border-transparent"
       >
-        {{ p.label }}
-      </button>
-      <button
-        *ngIf="dateRange() === 'custom'"
-        (click)="dateRange.set('all')"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700/30 text-white transition-colors"
-      >
-        All Time
+        Custom
       </button>
 
+      <!-- Custom date inputs + Apply (shown only when Custom mode is active) -->
       <div *ngIf="dateRange() === 'custom'" class="flex items-center gap-2">
         <label class="text-xs font-semibold text-slate-200">From</label>
         <input
           type="date"
           [(ngModel)]="customFrom"
-          class="text-xs bg-slate-700/30 border border-slate-500 rounded px-2 py-1 text-white focus:ring-2 focus-ring-[#1E3A5F] outline-none"
+          class="text-xs bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 focus:ring-2 focus-ring-[#1E3A5F] outline-none"
         />
         <label class="text-xs font-semibold text-slate-200">To</label>
         <input
           type="date"
           [(ngModel)]="customTo"
-          class="text-xs bg-slate-700/30 border border-slate-500 rounded px-2 py-1 text-white focus:ring-2 focus-ring-[#1E3A5F] outline-none"
+          class="text-xs bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 focus:ring-2 focus-ring-[#1E3A5F] outline-none"
         />
         <button
-          (click)="dateRange.set('custom')"
-          class="px-2 py-1.5 rounded text-xs font-medium bg-[#1E3A5F] text-white"
+          (click)="applyCustomRange()"
+          class="px-2 py-1.5 rounded-lg text-xs font-medium bg-white text-slate-800 border border-slate-300 shadow-sm"
         >
           Apply
         </button>

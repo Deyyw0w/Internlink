@@ -1,0 +1,178 @@
+<!-- Admin Audit Logs page — audit trail of every admin CRUD change -->
+<main class="w-full px-8 py-6 space-y-8">
+
+  <!-- Header -->
+  <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-2">
+      <h1 class="text-xl font-extrabold tracking-tight text-white">Admin Audit Logs</h1>
+      <p class="text-xs text-slate-300 mt-1">
+        Tamper-evident record of every admin add / update / delete across contracts, categories, forms,
+        agencies, applications, and more. Shows who changed what, when, and from what to what.
+      </p>
+      <p *ngIf="error()" class="text-xs text-red-100 mt-2">{{ error() }}</p>
+    </div>
+  </section>
+
+  <!-- Stats Bar -->
+  <section class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Total Logs</p>
+      <p class="text-2xl font-bold text-slate-900">{{ stats().total }}</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Added</p>
+      <p class="text-2xl font-bold text-emerald-700">{{ stats().creates }}</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Updated</p>
+      <p class="text-2xl font-bold text-amber-700">{{ stats().updates }}</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Deleted</p>
+      <p class="text-2xl font-bold text-rose-700">{{ stats().deletes }}</p>
+    </div>
+  </section>
+
+  <!-- Filters -->
+  <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center">
+      <div class="flex flex-wrap gap-3">
+        <label class="text-xs font-semibold text-slate-600 uppercase tracking-wider mt-1">Action</label>
+        <div class="flex gap-1" role="group">
+          <button
+            *ngFor="let o of actionOptions"
+            (click)="setActionFilter(o.key)"
+            [ngClass]="{
+              'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm': actionFilter() === o.key,
+              'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50': actionFilter() !== o.key
+            }"
+            class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border"
+          >
+            {{ o.label }}
+          </button>
+        </div>
+
+        <label class="text-xs font-semibold text-slate-600 uppercase tracking-wider mt-1 ml-4">Table</label>
+        <select
+          [(ngModel)]="tableFilter"
+          (ngModelChange)="setTableFilter($event)"
+          class="bg-white border border-slate-300 rounded-lg text-xs text-slate-900 px-2.5 py-1.5 focus:ring-2 focus-ring-[#1E3A5F] outline-none"
+        >
+          <option *ngFor="let t of tableOptions" [value]="t.key">{{ t.label }}</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Search record, admin, table…"
+          class="w-full md:w-64 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 px-3 py-1.5 focus:ring-2 focus-ring-[#1E3A5F] outline-none"
+        />
+
+        <label class="text-xs font-semibold text-slate-600 uppercase tracking-wider mt-2 md:mt-0">From</label>
+        <input
+          type="date"
+          [(ngModel)]="dateFrom"
+          (ngModelChange)="onDateChange()"
+          class="bg-white border border-slate-300 rounded-lg text-xs text-slate-900 px-2 py-1.5 focus:ring-2 focus-ring-[#1E3A5F] outline-none"
+        />
+        <label class="text-xs font-semibold text-slate-600 uppercase tracking-wider mt-2 md:mt-0">To</label>
+        <input
+          type="date"
+          [(ngModel)]="dateTo"
+          (ngModelChange)="onDateChange()"
+          class="bg-white border border-slate-300 rounded-lg text-xs text-slate-900 px-2 py-1.5 focus:ring-2 focus-ring-[#1E3A5F] outline-none"
+        />
+
+        <button
+          (click)="clearFilters()"
+          class="mt-2 md:mt-0 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+        >
+          Clear filters
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Audit Logs Table -->
+  <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+      <h3 class="text-base font-bold text-slate-900">Audit Trail</h3>
+      <span class="text-xs font-medium text-slate-500">
+        {{ pagedLogs().length }} of {{ filteredLogs().length }} entries
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Time</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Action</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Table</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Record</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Changed fields</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Admin</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          <tr *ngFor="let l of pagedLogs(); trackBy: trackByLog" class="hover:bg-slate-50/70 transition-colors">
+            <td class="px-6 py-4 text-sm text-slate-500">
+              {{ l.performed_at | date:'short' }}<br />
+              <span class="text-[10px] text-slate-400">{{ timeAgo(l.performed_at) }}</span>
+            </td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border" [ngClass]="actionBadge(l.action_type)">
+                {{ actionLabel(l.action_type) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-700 font-medium">{{ tableLabel(l.table_name) }}</td>
+            <td class="px-6 py-4 text-sm text-slate-900">{{ l.record_id }}</td>
+            <td class="px-6 py-4 text-sm text-slate-600" [title]="changesSummary(l)">
+              <span *ngIf="changesSummary(l) === '—'" class="text-slate-400 italic">—</span>
+              <span *ngIf="changesSummary(l) !== '—'">{{ changesSummary(l) }}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-right text-slate-600">{{ actor(l.performed_by, l.actor_name) }}</td>
+          </tr>
+          <tr *ngIf="pagedLogs().length === 0">
+            <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500">
+              <p *ngIf="filteredLogs().length === 0 && loading()">Loading audit logs…</p>
+              <p *ngIf="filteredLogs().length === 0 && !loading()">No audit log entries match the current filters.</p>
+              <p *ngIf="filteredLogs().length > 0">No entries on this page.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages() > 1" class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+      <button
+        (click)="previousPage()"
+        [disabled]="currentPage() === 1"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="{
+          'bg-[#1E3A5F] text-white': currentPage() > 1,
+          'bg-slate-100 text-slate-500': currentPage() === 1
+        }"
+      >
+        Prev
+      </button>
+      <span class="text-xs text-slate-500">Page {{ currentPage() }} of {{ totalPages() }}</span>
+      <button
+        (click)="nextPage()"
+        [disabled]="currentPage() === totalPages()"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="{
+          'bg-[#1E3A5F] text-white': currentPage() < totalPages(),
+          'bg-slate-100 text-slate-500': currentPage() === totalPages()
+        }"
+      >
+        Next
+      </button>
+    </div>
+  </section>
+
+</main>

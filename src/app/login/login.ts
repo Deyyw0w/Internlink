@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,9 +17,14 @@ export class Login {
 
   email = '';
   password = '';
+  showPasswordVisibility = signal(false);
   isSigningIn = false;
   showErrorPopup = false;
   errorPopupMessage = '';
+
+  togglePasswordVisibility(): void {
+    this.showPasswordVisibility.update((v) => !v);
+  }
 
   async onSubmit(): Promise<void> {
     console.log('[LOGIN] onSubmit called, email:', this.email);
@@ -83,8 +88,20 @@ export class Login {
         return;
       }
 
-      // Profile exists — proceed to the user's role-based dashboard
-      const actualRole = (profileResult.data as { role: string }).role;
+      // Profile exists — check if password change is required on first login
+      const profile = profileResult.data as {
+        role: string;
+        must_change_password: boolean;
+      };
+      const actualRole = profile.role;
+
+      if (profile.must_change_password) {
+        console.log('[LOGIN] First login detected — redirecting to change-password page');
+        void this.router.navigate(['/first-login-change-password']);
+        return;
+      }
+
+      // Proceed to the user's role-based dashboard
       const destination = actualRole === 'admin' ? '/admin-dashboard' : '/dashboard';
       console.log('[LOGIN] Redirecting to:', destination);
       void this.router.navigate([destination]);

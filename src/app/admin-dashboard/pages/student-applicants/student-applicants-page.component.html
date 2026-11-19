@@ -1,7 +1,7 @@
 <main class="w-full px-8 py-6 space-y-6">
 
   <!-- Top Header & Filter Card -->
-  <section class="bg-[#1E3A5F] text-white rounded-2xl p-6 shadow-sm space-y-5">
+  <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm space-y-5">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div class="flex flex-col gap-1">
         <h2 class="text-xl font-extrabold tracking-tight">Student Practicum Applicants Management</h2>
@@ -40,6 +40,35 @@
           <option value="under-review" class="text-black" >Under Review</option>
           <option value="approved" class="text-black" >Approved</option>
           <option value="requirements-incomplete" class="text-black" >Requirements Incomplete</option>
+        </select>
+        <svg
+          class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60 pointer-events-none"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+
+      <!-- Department filter -->
+      <div class="relative min-w-0">
+        <label class="sr-only">Department filter</label>
+        <select
+          [ngModel]="departmentFilter()"
+          (ngModelChange)="departmentFilter.set($event)"
+          class="w-full bg-white/10 border border-white/15 text-white placeholder-slate-300 rounded-xl pr-10 pl-3 py-2 text-sm appearance-none focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors cursor-pointer"
+        >
+          <option value="" class="text-black">All Departments</option>
+          <option
+            *ngFor="let dept of availableDepartments()"
+            [value]="dept"
+            class="text-black"
+          >
+            {{ dept }}
+          </option>
         </select>
         <svg
           class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60 pointer-events-none"
@@ -416,5 +445,18 @@
       </div>
     </div>
   </div>
+
+  <!-- Confirm Dialog (delete applicant / save review decision) -->
+  <app-confirm-dialog
+    [open]="confirmDialogOpen()"
+    [title]="confirmTitle()"
+    [message]="confirmMessage()"
+    [confirmLabel]="confirmLabel()"
+    [cancelLabel]="'Cancel'"
+    [loading]="confirmIsDeleting()"
+    [loadingLabel]="'Saving…'"
+    (confirm)="handleConfirm()"
+    (cancel)="handleConfirmCancel()"
+  ></app-confirm-dialog>
 
 </main>

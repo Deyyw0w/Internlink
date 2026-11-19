@@ -2,6 +2,8 @@ import { ChangeDetectorRef, Component, computed, inject, OnDestroy, OnInit, sign
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { AuditLogService } from '../../../shared/services/audit-log.service';
 
 type ApplicationStatus = 'under-review' | 'approved' | 'requirements-incomplete';
 
@@ -39,11 +41,12 @@ interface StudentRequirements {
 @Component({
   selector: 'app-student-applicants-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   templateUrl: './student-applicants-page.component.html',
 })
 export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly auditLog = inject(AuditLogService);
 
   private applicantsSubscription: any = null;
   private requirementsSubscription: any = null;
@@ -55,15 +58,19 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
 
   searchQuery = signal('');
   statusFilter = signal<ApplicationStatus | ''>('');
+  departmentFilter = signal('');
   programFilter = signal('all');
   degreePrograms = signal<string[]>([]);
+  degreeToDeptMap = signal<Record<string, string>>({});
 
-  /** Applicants filtered by the search bar + status + degree-program dropdowns. */
+  /** Applicants filtered by search + status + department + degree-program dropdowns. */
   filteredApplicants = computed(() => {
     const list = this.applicants();
     const q = (this.searchQuery() || '').toLowerCase();
     const status = this.statusFilter();
     const program = (this.programFilter() || '').toLowerCase();
+    const department = this.departmentFilter();
+    const deptMap = this.degreeToDeptMap();
 
     return list.filter((a) => {
       const matchSearch =
@@ -73,8 +80,17 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
       const matchStatus = !status || a.status === status;
       const matchProgram =
         !program || program === 'all' || a.degreeProgram.toLowerCase().includes(program);
-      return matchSearch && matchStatus && matchProgram;
+      const applicantDept = deptMap[a.degreeProgram || ''] || '';
+      const matchDepartment = !department || applicantDept === department;
+      return matchSearch && matchStatus && matchProgram && matchDepartment;
     });
+  });
+
+  /** Unique departments from degree_programs (excludes GLOCAL — admin-only department). */
+  readonly availableDepartments = computed(() => {
+    return [...new Set(Object.values(this.degreeToDeptMap()))]
+      .filter((dept) => Boolean(dept) && dept !== 'GLOCAL')
+      .sort();
   });
 
   // Review & Decision modal state
@@ -83,6 +99,15 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   reviewDecision = signal<'approved' | 'rejected' | 'requirements-incomplete' | 'under-review' | ''>('');
   reviewNotes = signal('');
   isSavingReview = signal(false);
+
+  // Confirm dialog state (replaces native confirm() popups).
+  confirmDialogOpen = signal(false);
+  confirmPayload = signal<{ action: 'deleteApplicant'; applicant: Applicant } | { action: 'saveReviewDecision'; applicant: Applicant; newStatus: ApplicationStatus } | null>(null);
+  confirmIsDeleting = signal(false);
+
+  confirmTitle = signal('');
+  confirmMessage = signal('');
+  confirmLabel = signal('Delete');
 
   trackByApplicant = (_: number, applicant: Applicant): string => applicant.refNumber;
 
@@ -106,21 +131,44 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  /** Save the review decision to Supabase and close the modal. */
-  async saveReviewDecision(): Promise<void> {
+  /** Request confirmation before saving the review decision. */
+  saveReviewDecision(): void {
     const applicant = this.reviewApplicant();
     const decision = this.reviewDecision();
     if (!applicant || !decision) return;
 
-    this.isSavingReview.set(true);
+    this.confirmPayload.set({ action: 'saveReviewDecision', applicant, newStatus: decision as any });
+    this.confirmTitle.set('Confirm decision?');
+    this.confirmMessage.set(`This will record the <strong>${decision}</strong> decision for <strong>${applicant.name}</strong>.`);
+    this.confirmLabel.set('Confirm');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
 
+  /** Perform the confirmed review decision save on Supabase. */
+  private async performSaveReviewDecision(applicant: Applicant, decision: ApplicationStatus): Promise<void> {
+    this.isSavingReview.set(true);
     try {
+      const oldValues = {
+        status: applicant.status,
+        admin_notes: (applicant as any).admin_notes ?? null,
+      };
+      const newValues = { status: decision, admin_notes: this.reviewNotes() || null };
+
       const { error } = await supabase
         .from('internship_applications')
-        .update({ status: decision, admin_notes: this.reviewNotes() || null })
+        .update(newValues)
         .eq('id', applicant.id);
 
       if (error) throw error;
+
+      await this.auditLog.logActivity({
+        actionType: 'update',
+        tableName: 'internship_applications',
+        recordId: applicant.id,
+        oldValues,
+        newValues,
+      });
 
       this.closeReviewModal();
       await this.loadApplicants(); // refresh via signal + realtime will also pick it up
@@ -134,31 +182,67 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Delete an applicant (and their application record) from Supabase. */
-  async deleteApplicant(applicant: Applicant): Promise<void> {
-    if (!window.confirm(`Delete application for ${applicant.name} (${applicant.refNumber})? This cannot be undone.`)) {
-      return;
-    }
+  /** Request confirmation before deleting an applicant from Supabase. */
+  deleteApplicant(applicant: Applicant): void {
+    this.confirmPayload.set({ action: 'deleteApplicant', applicant });
+    this.confirmTitle.set('Delete application?');
+    this.confirmMessage.set(`This will remove <strong>${applicant.name}</strong>. This cannot be undone.`);
+    this.confirmLabel.set('Delete');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
 
-    this.isDeletingApplicant.set(applicant.id);
+  /** Run the action the user confirmed in the confirm dialog. */
+  async handleConfirm(): Promise<void> {
+    const payload = this.confirmPayload();
+    if (!payload) return;
 
+    this.confirmIsDeleting.set(true);
     try {
-      const { error } = await supabase
-        .from('internship_applications')
-        .delete()
-        .eq('id', applicant.id);
+      if (payload.action === 'deleteApplicant') {
+        const applicant = payload.applicant;
+        const oldValues = {
+          refNumber: applicant.refNumber,
+          name: applicant.name,
+          studentId: applicant.studentId,
+          company: applicant.company,
+          role: applicant.role,
+          status: applicant.status,
+        };
 
-      if (error) throw error;
+        const { error } = await supabase.from('internship_applications').delete().eq('id', applicant.id);
+        if (error) throw error;
 
-      await this.loadApplicants(); // realtime will also pick up the deletion
-      this.cdr.markForCheck();
+        await this.auditLog.logActivity({
+          actionType: 'delete',
+          tableName: 'internship_applications',
+          recordId: applicant.id,
+          oldValues,
+          newValues: null,
+        });
+
+        await this.loadApplicants(); // realtime will also pick up the deletion
+      } else if (payload.action === 'saveReviewDecision') {
+        this.closeReviewModal();
+        await this.performSaveReviewDecision(payload.applicant, payload.newStatus);
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete applicant.';
-      console.error('[StudentApplicants] Delete applicant failed:', message);
-      alert(`Failed to delete: ${message}`);
+      console.error('[StudentApplicants] Confirmed action failed:', err);
+      alert('Action failed. Please try again.');
     } finally {
-      this.isDeletingApplicant.set(null);
+      this.confirmIsDeleting.set(false);
+      this.confirmDialogOpen.set(false);
+      this.confirmPayload.set(null);
+      this.cdr.markForCheck();
     }
+  }
+
+  /** Cancel the confirm dialog. */
+  handleConfirmCancel(): void {
+    this.confirmDialogOpen.set(false);
+    this.confirmPayload.set(null);
+    this.confirmIsDeleting.set(false);
+    this.cdr.markForCheck();
   }
 
   async ngOnInit(): Promise<void> {
@@ -184,16 +268,25 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     try {
       const { data, error } = await supabase
         .from('degree_programs')
-        .select('name')
+        .select('name, department, department_abbreviation')
         .order('name', { ascending: true });
 
       if (error) throw error;
 
-      const programs = ((data || []) as { name: string }[])
-        .map((r) => r.name)
-        .filter(Boolean);
+      const programs = ((data || []) as { name: string; department: string | null }[])
+        .map((r) => ({ name: r.name, department: r.department }))
+        .filter((r) => Boolean(r.name) && r.name !== 'GLOCAL');
 
-      this.degreePrograms.set(programs);
+      this.degreePrograms.set(programs.map((p) => p.name));
+
+      // Build degree -> department map so each applicant's department can be derived
+      // from their degree program for the department filter.
+      const deptMap: Record<string, string> = {};
+      programs.forEach((p) => {
+        deptMap[p.name] = p.department || 'Other';
+      });
+      this.degreeToDeptMap.set(deptMap);
+
       this.cdr.markForCheck();
     } catch (err) {
       console.error('[StudentApplicants] Error loading degree programs:', err);

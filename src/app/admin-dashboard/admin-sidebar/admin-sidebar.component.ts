@@ -5,7 +5,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 interface SidebarItem {
   label: string;
   route: string;
-  icon: 'dashboard' | 'users' | 'file-check' | 'building' | 'file-contract' | 'file-text' | 'chart' | 'bell' | 'cog' | 'admin-panel-settings' | 'agency-office';
+  icon: 'dashboard' | 'users' | 'file-check' | 'building' | 'file-contract' | 'file-text' | 'chart' | 'bell' | 'cog' | 'admin-panel-settings' | 'agency-office' | 'activity-log';
 }
 
 @Component({
@@ -13,6 +13,7 @@ interface SidebarItem {
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './admin-sidebar.component.html',
+  styleUrl: './admin-sidebar.component.css'
 })
 export class AdminSidebarComponent {
   readonly menuItems: SidebarItem[] = [
@@ -24,6 +25,7 @@ export class AdminSidebarComponent {
     { label: 'Forms & Templates', route: '/admin-dashboard/forms-templates', icon: 'file-text' },
     { label: 'Reports & Analytics', route: '/admin-dashboard/reports-analytics', icon: 'chart' },
     { label: 'Notification Logs', route: '/admin-dashboard/notification-logs', icon: 'bell' },
+    { label: 'Audit Logs', route: '/admin-dashboard/audit-logs', icon: 'activity-log' },
     { label: 'Account Manage', route: '/admin-dashboard/accounts-management', icon: 'users' },
     { label: 'Account Settings', route: '/admin-dashboard/account-settings', icon: 'admin-panel-settings' },
   ];
