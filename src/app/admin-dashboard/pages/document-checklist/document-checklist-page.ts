@@ -195,9 +195,11 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
         groupMap.get(key)!.requirements.push(this.mapRequirement(r));
       });
 
-      const grouped = Array.from(groupMap.values()).sort((a, b) =>
-        a.studentName.localeCompare(b.studentName)
-      );
+      // Only show students who have actually uploaded at least one document file.
+      // Students with requirement rows but no file yet stay hidden until they upload.
+      const grouped = Array.from(groupMap.values())
+        .filter((g) => g.requirements.some((r) => Boolean(r.fileName) && r.fileName !== 'No file'))
+        .sort((a, b) => a.studentName.localeCompare(b.studentName));
       this.students.set(grouped);
 
       this.cdr.markForCheck();
