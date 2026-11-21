@@ -5,7 +5,7 @@ import { supabase } from '../../../../environments/supabase.config';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { AuditLogService } from '../../../shared/services/audit-log.service';
 
-type ApplicationStatus = 'under-review' | 'approved' | 'requirements-incomplete';
+type ApplicationStatus = 'under-review' | 'approved' | 'requirements-incomplete' | 'removal-requested';
 
 interface Applicant {
   id: string;
@@ -96,13 +96,13 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   // Review & Decision modal state
   showReviewModal = signal(false);
   reviewApplicant = signal<Applicant | null>(null);
-  reviewDecision = signal<'approved' | 'rejected' | 'requirements-incomplete' | 'under-review' | ''>('');
+  reviewDecision = signal<'approved' | 'rejected' | 'requirements-incomplete' | 'under-review' | 'removal-requested' | ''>('');
   reviewNotes = signal('');
   isSavingReview = signal(false);
 
   // Confirm dialog state (replaces native confirm() popups).
   confirmDialogOpen = signal(false);
-  confirmPayload = signal<{ action: 'deleteApplicant'; applicant: Applicant } | { action: 'saveReviewDecision'; applicant: Applicant; newStatus: ApplicationStatus } | null>(null);
+  confirmPayload = signal<{ action: 'deleteApplicant'; applicant: Applicant } | { action: 'saveReviewDecision'; applicant: Applicant; newStatus: ApplicationStatus } | { action: 'approveRemoval'; applicant: Applicant } | { action: 'dismissRemovalRequest'; applicant: Applicant } | null>(null);
   confirmIsDeleting = signal(false);
 
   confirmTitle = signal('');
@@ -219,6 +219,26 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  /** Request admin approval to actually delete a removal-requested application. */
+  approveRemoval(applicant: Applicant): void {
+    this.confirmPayload.set({ action: 'approveRemoval', applicant });
+    this.confirmTitle.set('Approve removal?');
+    this.confirmMessage.set(`This will permanently delete the application for <strong>${applicant.name}</strong>. This cannot be undone.`);
+    this.confirmLabel.set('Approve Removal');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  /** Request confirmation before dismissing a removal request (revert to under-review). */
+  dismissRemovalRequest(applicant: Applicant): void {
+    this.confirmPayload.set({ action: 'dismissRemovalRequest', applicant });
+    this.confirmTitle.set('Dismiss removal request?');
+    this.confirmMessage.set(`This will reject the removal request and return <strong>${applicant.name}</strong>'s application to under review.`);
+    this.confirmLabel.set('Dismiss Request');
+    this.confirmDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
   /** Run the action the user confirmed in the confirm dialog. */
   async handleConfirm(): Promise<void> {
     const payload = this.confirmPayload();
@@ -249,6 +269,52 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
         });
 
         await this.loadApplicants(); // realtime will also pick up the deletion
+      } else if (payload.action === 'approveRemoval') {
+        const applicant = payload.applicant;
+        const oldValues = {
+          refNumber: applicant.refNumber,
+          name: applicant.name,
+          studentId: applicant.studentId,
+          company: applicant.company,
+          role: applicant.role,
+          status: applicant.status,
+        };
+
+        const { error } = await supabase.from('internship_applications').delete().eq('id', applicant.id);
+        if (error) throw error;
+
+        await this.auditLog.logActivity({
+          actionType: 'delete',
+          tableName: 'internship_applications',
+          recordId: applicant.id,
+          oldValues,
+          newValues: null,
+        });
+
+        await this.loadApplicants(); // realtime will also pick up the deletion
+      } else if (payload.action === 'dismissRemovalRequest') {
+        const applicant = payload.applicant;
+        const oldValues = {
+          status: applicant.status,
+          admin_notes: (applicant as any).admin_notes ?? null,
+        };
+        const newValues = { status: 'under-review', admin_notes: null };
+
+        const { error } = await supabase
+          .from('internship_applications')
+          .update(newValues)
+          .eq('id', applicant.id);
+        if (error) throw error;
+
+        await this.auditLog.logActivity({
+          actionType: 'update',
+          tableName: 'internship_applications',
+          recordId: applicant.id,
+          oldValues,
+          newValues,
+        });
+
+        await this.loadApplicants(); // realtime will also pick up the status change
       } else if (payload.action === 'saveReviewDecision') {
         this.closeReviewModal();
         await this.performSaveReviewDecision(payload.applicant, payload.newStatus);
@@ -612,6 +678,9 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     } else if (appStatus === 'submitted' || appStatus === 'pending' || appStatus === 'under-review') {
       status = 'under-review';
       statusLabel = 'Under Review';
+    } else if (appStatus === 'removal-requested') {
+      status = 'removal-requested';
+      statusLabel = 'Removal Requested';
     } else {
       status = 'requirements-incomplete';
       statusLabel = 'Requirements Incomplete';
