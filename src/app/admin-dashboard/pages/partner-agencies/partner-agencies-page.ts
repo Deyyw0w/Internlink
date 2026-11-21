@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
@@ -97,9 +97,13 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   newSlots = signal('');
   newStatus = signal<'active' | 'inactive'>('active');
 
-  searchQuery = '';
+  searchQuery = signal('');
   countryFilter = signal<string>('');
-  activeCategory: AgencyCategory = 'partner-countries';
+  activeCategory = signal<AgencyCategory>('partner-countries');
+
+  // Pagination
+  pageSize = 15;
+  currentPage = signal(1);
 
   // Manage Countries modal state
   showCountryModal = signal(false);
@@ -170,7 +174,8 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   trackByCategory = (_: number, category: AgencyCategory): string => category;
 
   setCategory(category: AgencyCategory): void {
-    this.activeCategory = category;
+    this.activeCategory.set(category);
+    this.resetPage();
   }
 
   get totalCount(): number {
@@ -189,11 +194,11 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     return this.agencies().reduce((sum, a) => sum + a.interns, 0);
   }
 
-  get filteredAgencies(): AgencyCard[] {
-    const query = this.searchQuery.toLowerCase().trim();
+  readonly filteredAgencies = computed((): AgencyCard[] => {
+    const query = this.searchQuery().toLowerCase().trim();
     const country = this.countryFilter();
     return this.agencies().filter((agency) => {
-      const matchCategory = agency.category === this.activeCategory;
+      const matchCategory = agency.category === this.activeCategory();
       const matchCountry = !country || agency.country === country;
       const matchSearch =
         !query ||
@@ -201,6 +206,41 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
         agency.location.toLowerCase().includes(query);
       return matchCategory && matchCountry && matchSearch;
     });
+  });
+
+  /** Paged agencies for display. */
+  readonly pagedAgencies = computed(() => {
+    const list = this.filteredAgencies();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredAgencies().length / this.pageSize))
+  );
+
+  /** Reset to page 1 whenever filters change. */
+  private resetPage(): void {
+    this.currentPage.set(1);
+    this.cdr.markForCheck();
+  }
+
+  onSearchChange(value: string): void {
+    this.searchQuery.set(value);
+    this.resetPage();
+  }
+
+  onCountryChange(value: string): void {
+    this.countryFilter.set(value);
+    this.resetPage();
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) this.currentPage.update((p) => p - 1);
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) this.currentPage.update((p) => p + 1);
   }
 
   /** Pull just the country segment from a full address string. */

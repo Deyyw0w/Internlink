@@ -60,6 +60,10 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   statusFilter = signal<ApplicationStatus | ''>('');
   departmentFilter = signal('');
   programFilter = signal('all');
+
+  // Pagination
+  pageSize = 15;
+  currentPage = signal(1);
   degreePrograms = signal<string[]>([]);
   degreeToDeptMap = signal<Record<string, string>>({});
 
@@ -85,6 +89,15 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
       return matchSearch && matchStatus && matchProgram && matchDepartment;
     });
   });
+
+  /** Paged applicants for display. */
+  readonly pagedApplicants = computed(() => {
+    const list = this.filteredApplicants();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
+
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredApplicants().length / this.pageSize)));
 
   /** Unique departments from degree_programs (excludes GLOCAL — admin-only department). */
   readonly availableDepartments = computed(() => {
@@ -139,6 +152,40 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   trackByApplicant = (_: number, applicant: Applicant): string => applicant.refNumber;
 
   trackByString = (_: number, s: string): string => s;
+
+  /** Reset to page 1 whenever filters change. */
+  private resetPage(): void {
+    this.currentPage.set(1);
+    this.cdr.markForCheck();
+  }
+
+  onSearchChange(value: string): void {
+    this.searchQuery.set(value);
+    this.resetPage();
+  }
+
+  onStatusChange(value: ApplicationStatus | ''): void {
+    this.statusFilter.set(value);
+    this.resetPage();
+  }
+
+  onDepartmentChange(value: string): void {
+    this.departmentFilter.set(value);
+    this.resetPage();
+  }
+
+  onProgramChange(value: string): void {
+    this.programFilter.set(value);
+    this.resetPage();
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) this.currentPage.update((p) => p - 1);
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) this.currentPage.update((p) => p + 1);
+  }
 
   /** Open the Review & Decision modal for a specific applicant. */
   onReviewDecision(applicant: Applicant): void {

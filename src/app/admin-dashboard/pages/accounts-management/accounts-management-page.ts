@@ -59,6 +59,10 @@ export class AccountsManagementPageComponent implements OnInit {
   departmentFilter = signal<string>('');
   courseFilter = signal<string>('');
 
+  // Pagination
+  pageSize = 15;
+  currentPage = signal(1);
+
   /** Unique departments derived from loaded accounts, used for the department filter dropdown. */
   availableDepartments = signal<string[]>([]);
 
@@ -119,6 +123,15 @@ export class AccountsManagementPageComponent implements OnInit {
       return true;
     });
   });
+
+  /** Paged accounts for display. */
+  readonly pagedAccounts = computed(() => {
+    const list = this.filteredAccounts();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
+
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredAccounts().length / this.pageSize)));
 
   ngOnInit(): void {
     this.loadAccounts();
@@ -707,6 +720,35 @@ export class AccountsManagementPageComponent implements OnInit {
   }
 
   trackByAccount = (_: number, account: Account): string => account.id;
+
+  /** Reset to page 1 whenever filters change. */
+  private resetPage(): void {
+    this.currentPage.set(1);
+    this.cdr.markForCheck();
+  }
+
+  onSearchChange(value: string): void {
+    this.searchQuery.set(value);
+    this.resetPage();
+  }
+
+  onDepartmentChange(value: string): void {
+    this.departmentFilter.set(value);
+    this.resetPage();
+  }
+
+  onCourseChange(value: string): void {
+    this.courseFilter.set(value);
+    this.resetPage();
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) this.currentPage.update((p) => p - 1);
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) this.currentPage.update((p) => p + 1);
+  }
 
   roleBadgeClass(role: string): string {
     const base = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border';

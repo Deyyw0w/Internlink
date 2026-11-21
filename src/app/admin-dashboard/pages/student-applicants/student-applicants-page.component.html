@@ -39,7 +39,7 @@
         <input
           type="search"
           [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
+          (ngModelChange)="onSearchChange($event)"
           placeholder="Search by name or reference numberâ€¦"
           class="w-full bg-white/10 border border-white/15 text-white placeholder-slate-300 rounded-xl pl-3 pr-3 py-2 text-sm focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors"
         />
@@ -50,7 +50,7 @@
         <label class="sr-only">Application status filter</label>
         <select
           [ngModel]="statusFilter()"
-          (ngModelChange)="statusFilter.set($event)"
+          (ngModelChange)="onStatusChange($event)"
           class="w-full bg-white/10 border border-white/15 text-white placeholder-slate-300 rounded-xl pr-10 pl-3 py-2 text-sm appearance-none focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors cursor-pointer"
         >
           <option value="" class="text-black" >All Application Statuses</option>
@@ -76,7 +76,7 @@
         <label class="sr-only">Department filter</label>
         <select
           [ngModel]="departmentFilter()"
-          (ngModelChange)="departmentFilter.set($event)"
+          (ngModelChange)="onDepartmentChange($event)"
           class="w-full bg-white/10 border border-white/15 text-white placeholder-slate-300 rounded-xl pr-10 pl-3 py-2 text-sm appearance-none focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors cursor-pointer"
         >
           <option value="" class="text-black">All Departments</option>
@@ -105,7 +105,7 @@
         <label class="sr-only">Degree program filter</label>
         <select
           [ngModel]="programFilter()"
-          (ngModelChange)="programFilter.set($event)"
+          (ngModelChange)="onProgramChange($event)"
           class="w-full bg-white/10 border border-white/15 text-white placeholder-slate-300 rounded-xl pr-10 pl-3 py-2 text-sm appearance-none focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors cursor-pointer"
         >
           <option value="all" class="text-black">All USLT Programs</option>
@@ -149,7 +149,7 @@
 
       <tbody class="divide-y divide-slate-100 hover:bg-slate-50/70 transition-colors">
         <tr
-          *ngFor="let applicant of filteredApplicants(); trackBy: trackByApplicant"
+          *ngFor="let applicant of pagedApplicants(); trackBy: trackByApplicant"
         >
           <td class="px-6 py-4">
             <div class="text-slate-900 font-semibold">{{ applicant.refNumber }}</div>
@@ -230,7 +230,41 @@
           </td>
         </tr>
       </tbody>
-    </table>
+              <tr *ngIf="pagedApplicants().length === 0">
+            <td colspan="8" class="px-6 py-12 text-center text-sm text-slate-500">
+              <p *ngIf="filteredApplicants().length === 0 && loading()">Loading applicants…</p>
+              <p *ngIf="filteredApplicants().length === 0 && !loading()">No applicants match the current filters.</p>
+              <p *ngIf="filteredApplicants().length > 0">No applicants on this page.</p>
+            </td>
+          </tr>
+</table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages() > 0" class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+      <button
+        (click)="previousPage()"
+        [disabled]="currentPage() === 1"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="{
+          'bg-[#1E3A5F] text-white': currentPage() > 1,
+          'bg-slate-100 text-slate-500': currentPage() === 1
+        }"
+      >
+        Prev
+      </button>
+      <span class="text-xs text-slate-500">Page {{ currentPage() }} of {{ totalPages() }}</span>
+      <button
+        (click)="nextPage()"
+        [disabled]="currentPage() === totalPages()"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="{
+          'bg-[#1E3A5F] text-white': currentPage() < totalPages(),
+          'bg-slate-100 text-slate-500': currentPage() === totalPages()
+        }"
+      >
+        Next
+      </button>
     </div>
   </section>
 

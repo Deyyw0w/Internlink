@@ -74,6 +74,10 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
   categoryFilter = signal<string>(''); // category id
   statusFilter = signal<ContractStatus | ''>('');
 
+  // Pagination
+  pageSize = 15;
+  currentPage = signal(1);
+
   /** Contracts filtered by search + category + status. */
   filteredContracts = computed(() => {
     const q = (this.searchQuery() || '').toLowerCase();
@@ -91,6 +95,15 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       return matchSearch && matchCategory && matchStatus;
     });
   });
+
+  /** Paged contracts for display. */
+  readonly pagedContracts = computed(() => {
+    const list = this.filteredContracts();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
+
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredContracts().length / this.pageSize)));
 
   /** Active categories (for the category dropdown on upload + category filter). */
   activeCategories = computed(() => {
@@ -165,6 +178,35 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
 
   trackByContract = (_: number, item: ContractItem): string => item.id;
   trackByCategory = (_: number, c: ContractCategory): string => c.id;
+
+  /** Reset to page 1 whenever filters change. */
+  private resetPage(): void {
+    this.currentPage.set(1);
+    this.cdr.markForCheck();
+  }
+
+  onSearchChange(value: string): void {
+    this.searchQuery.set(value);
+    this.resetPage();
+  }
+
+  onCategoryChange(value: string): void {
+    this.categoryFilter.set(value);
+    this.resetPage();
+  }
+
+  onStatusChange(value: ContractStatus | ''): void {
+    this.statusFilter.set(value);
+    this.resetPage();
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) this.currentPage.update((p) => p - 1);
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) this.currentPage.update((p) => p + 1);
+  }
 
   ngOnInit(): void {
     this.loadData();
@@ -332,7 +374,7 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
     this.searchQuery.set('');
     this.categoryFilter.set('');
     this.statusFilter.set('');
-    this.cdr.markForCheck();
+    this.resetPage();
   }
 
   // ── Category management modal ─────────────────────────────────────

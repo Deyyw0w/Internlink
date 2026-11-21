@@ -6,8 +6,8 @@
     <div class="flex flex-col gap-2">
       <h1 class="text-xl font-extrabold tracking-tight text-white">Admin Audit Logs</h1>
       <p class="text-xs text-slate-300 mt-1">
-        Tamper-evident record of every admin add / update / delete across contracts, categories, forms,
-        agencies, applications, and more. Shows who changed what, when, and from what to what.
+        Tamper-evident record of every add / update / delete across contracts, categories, forms,
+        agencies, applications, and more. Shows who performed the action, when, and from what to what.
       </p>
       <p *ngIf="error()" class="text-xs text-red-100 mt-2">{{ error() }}</p>
     </div>
@@ -15,19 +15,19 @@
 
   <!-- Stats Bar -->
   <section class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
       <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Total Logs</p>
       <p class="text-2xl font-bold text-slate-900">{{ stats().total }}</p>
     </div>
-    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
       <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Added</p>
       <p class="text-2xl font-bold text-emerald-700">{{ stats().creates }}</p>
     </div>
-    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
       <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Updated</p>
       <p class="text-2xl font-bold text-amber-700">{{ stats().updates }}</p>
     </div>
-    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
       <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Deleted</p>
       <p class="text-2xl font-bold text-rose-700">{{ stats().deletes }}</p>
     </div>
@@ -114,7 +114,7 @@
             <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Table</th>
             <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Record</th>
             <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Changed fields</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Admin</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Performed by</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-50">
@@ -130,9 +130,22 @@
             </td>
             <td class="px-6 py-4 text-sm text-slate-700 font-medium">{{ tableLabel(l.table_name) }}</td>
             <td class="px-6 py-4 text-sm text-slate-900">{{ l.record_id }}</td>
-            <td class="px-6 py-4 text-sm text-slate-600 break-words" [title]="changesSummary(l)">
-              <span *ngIf="changesSummary(l) === '—'" class="text-slate-400 italic">—</span>
-              <span *ngIf="changesSummary(l) !== '—'">{{ changesSummary(l) }}</span>
+            <td class="px-6 py-4 text-sm text-slate-600">
+              <ng-container *ngIf="l.action_type === 'delete'">
+                <span class="text-[11px] text-slate-400 italic block">{{ deletedSummary(l) }}</span>
+              </ng-container>
+              <ng-container *ngIf="l.action_type !== 'delete'">
+                <div *ngFor="let c of changedFields(l)" class="text-[11px] leading-[1.35] mb-1">
+                  <span class="font-bold text-slate-700">{{ c.label }}</span>:
+                  <span class="text-slate-500">{{ c.oldValue }}</span>
+                  <span class="text-slate-400 font-bold">&rarr;</span>
+                  <span class="text-slate-500">{{ c.newValue }}</span>
+                </div>
+                <div *ngIf="changedFields(l).length === 0 && l.action_type === 'create'" class="text-[11px] text-slate-400 italic block">
+                  new record created
+                </div>
+                <div *ngIf="changedFields(l).length === 0 && l.action_type === 'update'" class="text-[11px] text-slate-400 italic block">—</div>
+              </ng-container>
             </td>
             <td class="px-6 py-4 text-sm text-slate-600">{{ actor(l.performed_by, l.actor_name) }}</td>
           </tr>
@@ -148,7 +161,7 @@
     </div>
 
     <!-- Pagination -->
-    <div *ngIf="totalPages() > 1" class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+    <div *ngIf="totalPages() > 0" class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
       <button
         (click)="previousPage()"
         [disabled]="currentPage() === 1"

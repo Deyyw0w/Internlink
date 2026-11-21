@@ -185,7 +185,7 @@
         </thead>
 
         <tbody class="divide-y divide-slate-100 hover:bg-slate-50/50 transition-colors">
-          <tr *ngFor="let c of filteredContracts(); trackBy: trackByContract" class="group">
+          <tr *ngFor="let c of pagedContracts(); trackBy: trackByContract" class="group">
             <td class="px-6 py-4">
               <div class="text-slate-900 font-semibold">{{ c.title }}</div>
               <div class="text-[10px] text-slate-500 mt-0.5">{{ c.contract_type || '—' }} • {{ c.contract_type ? '' : '' }}</div>
@@ -267,8 +267,34 @@
               <p class="text-xs text-slate-500 italic">{{ searchQuery().trim() || categoryFilter() || statusFilter() ? 'No matching contracts found.' : 'No contracts yet. Click "Upload Contract" to add one.' }}</p>
             </td>
           </tr>
+          <tr *ngIf="pagedContracts().length === 0 && filteredContracts().length > 0">
+            <td colspan="7" class="px-6 py-8 text-center text-sm text-slate-500">No contracts on this page.</td>
+          </tr>
         </tbody>
       </table>
+    </div>
+    <div *ngIf="totalPages() > 0" class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+      <button
+        (click)="previousPage()"
+        [disabled]="currentPage() === 1"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="{
+          'bg-[#1E3A5F] text-white': currentPage() > 1,
+          'bg-slate-100 text-slate-500': currentPage() === 1
+        }">
+        Prev
+      </button>
+      <span class="text-xs text-slate-500">Page {{ currentPage() }} of {{ totalPages() }}</span>
+      <button
+        (click)="nextPage()"
+        [disabled]="currentPage() === totalPages()"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="{
+          'bg-[#1E3A5F] text-white': currentPage() < totalPages(),
+          'bg-slate-100 text-slate-500': currentPage() === totalPages()
+        }">
+        Next
+      </button>
     </div>
   </section>
 

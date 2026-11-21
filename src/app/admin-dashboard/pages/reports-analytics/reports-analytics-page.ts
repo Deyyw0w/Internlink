@@ -54,6 +54,10 @@ export class ReportsAnalyticsPageComponent implements OnInit {
 
   trackByApp = (_: number, a: ApplicationRow): string => a.id;
 
+  // Pagination
+  pageSize = 15;
+  currentPage = signal(1);
+
   /** Date range preset options for the selector. */
   readonly datePresets: { key: DateRangePreset; label: string }[] = [
     { key: '7d', label: 'Last 7 days' },
@@ -119,12 +123,14 @@ export class ReportsAnalyticsPageComponent implements OnInit {
       this.customFrom.set('');
       this.customTo.set('');
     }
+    this.resetPage();
   }
 
   /** Apply the custom From/To date range. Keeps dateRange on 'custom' so the
    *  reactive filteredApps computed picks up the new customFrom/customTo values. */
   applyCustomRange(): void {
     this.dateRange.set('custom');
+    this.resetPage();
     this.cdr.markForCheck();
   }
 
@@ -189,6 +195,31 @@ export class ReportsAnalyticsPageComponent implements OnInit {
       this.inRange(a.submitted_at || a.created_at, start, end)
     );
   });
+
+  /** Paged applications for display. */
+  readonly pagedApps = computed(() => {
+    const list = this.filteredApps();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredApps().length / this.pageSize))
+  );
+
+  /** Reset to page 1 whenever filters change. */
+  private resetPage(): void {
+    this.currentPage.set(1);
+    this.cdr.markForCheck();
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) this.currentPage.update((p) => p - 1);
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) this.currentPage.update((p) => p + 1);
+  }
 
   /** Applications within the previous period (for deltas). */
   readonly prevApps = computed(() => {

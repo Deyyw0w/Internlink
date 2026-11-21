@@ -485,7 +485,7 @@
       <input
         type="text"
         placeholder="by name, email, or ID…"
-        [(ngModel)]="searchQuery"
+        [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)"
         class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-2 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-all"
       />
       <svg class="w-4 h-4 text-slate-400 absolute right-3 top-10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -496,7 +496,7 @@
     <div class="flex-1 max-w-sm relative">
       <label class="text-xs font-semibold text-slate-600 uppercase tracking-wider mt-1 block">Department</label>
       <select
-        [(ngModel)]="departmentFilter"
+        [ngModel]="departmentFilter()" (ngModelChange)="onDepartmentChange($event)"
         class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-2 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-all appearance-none"
       >
         <option value="">All departments</option>
@@ -510,7 +510,7 @@
     <div class="flex-1 max-w-sm relative">
       <label class="text-xs font-semibold text-slate-600 uppercase tracking-wider mt-1 block">Course</label>
       <select
-        [(ngModel)]="courseFilter"
+        [ngModel]="courseFilter()" (ngModelChange)="onCourseChange($event)"
         class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-2 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-all appearance-none"
       >
         <option value="">All courses</option>
@@ -538,7 +538,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          <tr *ngFor="let account of filteredAccounts(); trackBy: trackByAccount" class="hover:bg-slate-50/70">
+          <tr *ngFor="let account of pagedAccounts(); trackBy: trackByAccount" class="hover:bg-slate-50/70">
             <td class="px-6 py-4">
               <div class="text-sm font-medium text-slate-900">{{ account.full_name }}</div>
             </td>
@@ -583,6 +583,33 @@
       </table>
     </div>
   </section>
+
+  <!-- Pagination -->
+  <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+    <button
+      (click)="previousPage()"
+      [disabled]="currentPage() === 1"
+      class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      [ngClass]="{
+        'bg-[#1E3A5F] text-white': currentPage() > 1,
+        'bg-slate-100 text-slate-500': currentPage() === 1
+      }"
+    >
+      Prev
+    </button>
+    <span class="text-xs text-slate-500">Page {{ currentPage() }} of {{ totalPages() }}</span>
+    <button
+      (click)="nextPage()"
+      [disabled]="currentPage() === totalPages()"
+      class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      [ngClass]="{
+        'bg-[#1E3A5F] text-white': currentPage() < totalPages(),
+        'bg-slate-100 text-slate-500': currentPage() === totalPages()
+      }"
+    >
+      Next
+    </button>
+  </div>
 
   <!-- Confirm Dialog (delete account) -->
   <app-confirm-dialog

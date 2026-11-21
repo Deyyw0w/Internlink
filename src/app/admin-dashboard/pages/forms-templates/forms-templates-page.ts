@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, computed, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
@@ -72,19 +72,19 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
 
       <!-- Stats Bar -->
       <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Total Forms</p>
           <p class="text-2xl font-bold text-slate-900">{{ templateStats().total }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Active</p>
           <p class="text-2xl font-bold text-slate-900">{{ templateStats().active }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Inactive</p>
           <p class="text-2xl font-bold text-slate-900">{{ templateStats().inactive }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Categories</p>
           <p class="text-2xl font-bold text-slate-900">{{ templateStats().categories }}</p>
         </div>
@@ -100,7 +100,7 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
             <input
               type="search"
               [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
+              (ngModelChange)="onSearchChange($event)"
               placeholder="Search title or description…"
               class="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl pl-3 pr-10 py-2 text-sm focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors"
             />
@@ -121,7 +121,7 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
             <label class="sr-only">Category filter</label>
             <select
               [ngModel]="categoryFilter()"
-              (ngModelChange)="categoryFilter.set($event)"
+              (ngModelChange)="onCategoryChange($event)"
               class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pr-10 pl-3 py-2 text-sm appearance-none focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors cursor-pointer"
             >
               <option value="">All Categories</option>
@@ -160,7 +160,7 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
             </thead>
 
             <tbody class="divide-y divide-slate-100 hover:bg-slate-50/50 transition-colors">
-              <tr *ngFor="let item of filteredTemplates(); trackBy: trackByTemplate" class="group">
+              <tr *ngFor="let item of pagedTemplates(); trackBy: trackByTemplate" class="group">
                 <td class="px-6 py-4">
                   <div class="text-slate-900 font-semibold">{{ item.title }}</div>
                   <div class="text-[10px] text-slate-500 mt-0.5">Updated {{ timeAgo(item.updated_at) }}</div>
@@ -247,12 +247,39 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
                   </div>
                 </td>
               </tr>
+              <tr *ngIf="filteredTemplates().length === 0">
+                <td colspan="8" class="px-6 py-12 text-center text-sm text-slate-500">No forms or templates found.</td>
+              </tr>
+              <tr *ngIf="pagedTemplates().length === 0 && filteredTemplates().length > 0">
+                <td colspan="8" class="px-6 py-12 text-center text-sm text-slate-500">No templates on this page.</td>
+              </tr>
             </tbody>
           </table>
         </div>
 
-        <div *ngIf="filteredTemplates().length === 0" class="px-6 py-12 text-center">
-          <p class="text-xs text-slate-500 italic">No forms or templates found.</p>
+        <!-- Pagination -->
+        <div *ngIf="totalPages() > 0" class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+          <button
+            (click)="previousPage()"
+            [disabled]="currentPage() === 1"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            [ngClass]="{
+              'bg-[#1E3A5F] text-white': currentPage() > 1,
+              'bg-slate-100 text-slate-500': currentPage() === 1
+            }">
+            Prev
+          </button>
+          <span class="text-xs text-slate-500">Page {{ currentPage() }} of {{ totalPages() }}</span>
+          <button
+            (click)="nextPage()"
+            [disabled]="currentPage() === totalPages()"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            [ngClass]="{
+              'bg-[#1E3A5F] text-white': currentPage() < totalPages(),
+              'bg-slate-100 text-slate-500': currentPage() === totalPages()
+            }">
+            Next
+          </button>
         </div>
       </section>
 
@@ -535,6 +562,10 @@ export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
   searchQuery = signal('');
   categoryFilter = signal<Category | ''>('');
 
+  // Pagination
+  pageSize = 15;
+  currentPage = signal(1);
+
   // Modals
   showFormModal = signal(false);
   showReplaceModal = signal(false);
@@ -634,6 +665,41 @@ export class FormsTemplatesPageComponent implements OnInit, OnDestroy {
       const matchCategory = !category || t.category === category;
       return matchSearch && matchCategory;
     });
+  }
+
+  /** Paged templates for display. */
+  readonly pagedTemplates = computed(() => {
+    const list = this.filteredTemplates();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredTemplates().length / this.pageSize))
+  );
+
+  /** Reset to page 1 whenever filters change. */
+  private resetPage(): void {
+    this.currentPage.set(1);
+    this.cdr.markForCheck();
+  }
+
+  onSearchChange(value: string): void {
+    this.searchQuery.set(value);
+    this.resetPage();
+  }
+
+  onCategoryChange(value: Category | ''): void {
+    this.categoryFilter.set(value);
+    this.resetPage();
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) this.currentPage.update((p) => p - 1);
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) this.currentPage.update((p) => p + 1);
   }
 
   /** Friendly time-ago string for template rows. */

@@ -62,6 +62,10 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
   searchQuery = signal('');
   statusFilter = signal<DocumentStatus | ''>('');
 
+  // Pagination
+  pageSize = 15;
+  currentPage = signal(1);
+
   // Add document requirement modal state
   showAddDocument = signal(false);
   addForm = signal<{ studentId: string; requirementName: string }>({
@@ -94,6 +98,15 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     });
   });
 
+  /** Paged students for display. */
+  readonly pagedStudents = computed(() => {
+    const list = this.filteredStudents();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
+
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredStudents().length / this.pageSize)));
+
   trackByStudent = (_: number, group: StudentDocumentGroup): string => group.studentId;
 
   trackByRequirement = (_: number, req: DocumentItem): string => req.id;
@@ -124,7 +137,32 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
       this.sortColumn.set(column);
       this.sortDirection.set('asc');
     }
+    this.resetPage();
     this.cdr.markForCheck();
+  }
+
+  /** Reset to page 1 whenever filters change. */
+  private resetPage(): void {
+    this.currentPage.set(1);
+    this.cdr.markForCheck();
+  }
+
+  onSearchChange(value: string): void {
+    this.searchQuery.set(value);
+    this.resetPage();
+  }
+
+  onStatusChange(value: string): void {
+    this.statusFilter.set(value as DocumentStatus | '');
+    this.resetPage();
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 1) this.currentPage.update((p) => p - 1);
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) this.currentPage.update((p) => p + 1);
   }
 
 

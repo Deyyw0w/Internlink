@@ -15,6 +15,12 @@ interface AuditRow {
   actor_name: string | null;
 }
 
+interface FieldChange {
+  label: string;
+  oldValue: string;
+  newValue: string;
+}
+
 type ActionFilter = 'all' | 'create' | 'update' | 'delete';
 
 function timeAgo(iso: string | null): string {
@@ -67,32 +73,197 @@ function actionLabel(action: string): string {
   return map[action] || action;
 }
 
-/** Short, readable description of changed fields with old → new values.
- *  Example: "status: under-review → approved; admin_notes: — → Documents verified"
- */
-function changesSummary(row: AuditRow): string {
+/** Internal/noisy fields that add no useful context for admins. */
+const NOISE_FIELDS = new Set(['id']);
+
+/** Timestamp-ish field names worth formatting as local date/time. */
+const TIME_FIELDS = new Set([
+  'created_at', 'updated_at', 'submitted_at', 'performed_at',
+  'verify_date', 'application_deadline', 'contract_start_date', 'contract_end_date',
+]);
+
+/** Slug-ish field names worth title-casing. */
+const SLUG_FIELDS = new Set([
+  'status', 'action_type', 'table_name', 'verification_status',
+  'contract_type', 'requirement_type', 'file_type',
+]);
+
+/** Fields worth showing first when summarizing a deleted record. */
+const DELETED_LABEL_KEYS = [
+  'refNumber', 'reference_number', 'host_company', 'company_name',
+  'name', 'contract_title', 'form_name', 'template_name', 'country_name',
+];
+
+/** Convert a technical field name into a human-readable label. */
+function fieldLabel(key: string): string {
+  const map: Record<string, string> = {
+    is_active: 'Active Status',
+    fileName: 'File Name',
+    fileUrl: 'File URL',
+    updated_at: 'Last Updated',
+    refNumber: 'Reference Number',
+    studentId: 'Student ID',
+    action_type: 'Action Type',
+    table_name: 'Table',
+    record_id: 'Record',
+    performed_by: 'Performed By',
+    performed_at: 'Performed At',
+    actor_name: 'Actor',
+    status: 'Status',
+    admin_notes: 'Admin Notes',
+    host_company: 'Host Company',
+    position_role: 'Position / Role',
+    location: 'Location',
+    reference_number: 'Reference Number',
+    submitted_at: 'Submitted At',
+    company_name: 'Company Name',
+    company_email: 'Company Email',
+    contact_person: 'Contact Person',
+    contact_email: 'Contact Email',
+    contact_phone: 'Contact Phone',
+    address: 'Address',
+    industry: 'Industry',
+    website: 'Website',
+    logo_url: 'Logo URL',
+    description: 'Description',
+    requirements: 'Requirements',
+    available_slots: 'Available Slots',
+    application_deadline: 'Application Deadline',
+    created_at: 'Created At',
+    name: 'Name',
+    country_name: 'Country Name',
+    code: 'Code',
+    form_name: 'Form Name',
+    template_name: 'Template Name',
+    file_type: 'File Type',
+    file_size: 'File Size',
+    requirement_name: 'Requirement Name',
+    requirement_type: 'Requirement Type',
+    is_required: 'Required',
+    verification_status: 'Verification Status',
+    verify_date: 'Verify Date',
+    verified_by: 'Verified By',
+    contract_title: 'Contract Title',
+    contractor_name: 'Contractor Name',
+    contract_value: 'Contract Value',
+    contract_start_date: 'Contract Start Date',
+    contract_end_date: 'Contract End Date',
+    contract_type: 'Contract Type',
+  };
+  if (map[key]) return map[key];
+  return key
+    .replace(/[_\-]/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** True when the field should be skipped entirely (internal/noisy). */
+function isNoiseField(key: string): boolean {
+  return NOISE_FIELDS.has(key);
+}
+
+/** Title-case a slug/status string: removal-requested → Removal Requested. */
+function titleCase(value: string): string {
+  return value
+    .replace(/[_\-]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Format a single value for display based on its field name and type. */
+function formatValue(key: string, value: any): string {
+  if (value === undefined || value === null || value === '') return '—';
+
+  // Boolean → Active / Inactive
+  if (typeof value === 'boolean') return value ? 'Active' : 'Inactive';
+
+  // Timestamp fields → readable local date/time, e.g. Nov 21, 2026, 11:04 PM
+  if (TIME_FIELDS.has(key) || /_at$|_date$/i.test(key)) {
+    const d = new Date(String(value));
+    if (!isNaN(d.getTime())) {
+      const h12 = d.getHours() % 12 || 12;
+      const minutes = d.getMinutes().toString().padStart(2, '0');
+      const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+      const month = d.toLocaleString(undefined, { month: 'short' });
+      return `${month} ${d.getDate()}, ${d.getFullYear()}, ${h12}:${minutes} ${ampm}`;
+    }
+    return String(value);
+  }
+
+  // Slug / status → Title Case
+  if (SLUG_FIELDS.has(key)) {
+    return titleCase(String(value));
+  }
+
+  return String(value);
+}
+
+/** Returns the list of changed fields for display (create/update),
+ *  or an empty array for delete (use deletedSummary instead). */
+function changedFields(row: AuditRow): FieldChange[] {
+  if (row.action_type === 'delete') return [];
+
   const oldVals = row.old_values || {};
   const newVals = row.new_values || {};
-  const changed: string[] = [];
+  const changes: FieldChange[] = [];
   const allKeys = new Set([...Object.keys(oldVals), ...Object.keys(newVals)]);
+
   allKeys.forEach((k) => {
+    if (isNoiseField(k)) return;
+
     const oldV = oldVals[k];
     const newV = newVals[k];
-    if (String(oldV) !== String(newV)) {
-      const oldStr = oldV === undefined || oldV === null ? '—' : String(oldV);
-      const newStr = newV === undefined || newV === null ? '—' : String(newV);
-      // Truncate long values so the table cell stays readable.
-      const truncatedOld = oldStr.length > 35 ? oldStr.slice(0, 35) + '…' : oldStr;
-      const truncatedNew = newStr.length > 35 ? newStr.slice(0, 35) + '…' : newStr;
-      changed.push(`${k}: ${truncatedOld} → ${truncatedNew}`);
-    }
+
+    // Skip empty — → — transitions (both sides null/undefined/empty string)
+    const oldEmpty = oldV === undefined || oldV === null || oldV === '';
+    const newEmpty = newV === undefined || newV === null || newV === '';
+    if (oldEmpty && newEmpty) return;
+
+    // Skip if both sides stringify identically
+    if (String(oldV) === String(newV)) return;
+
+    changes.push({
+      label: fieldLabel(k),
+      oldValue: formatValue(k, oldV),
+      newValue: formatValue(k, newV),
+    });
   });
-  if (changed.length === 0) {
+
+  return changes;
+}
+
+/** Concise summary of a deleted record, pulled from old_values. */
+function deletedSummary(row: AuditRow): string {
+  const oldVals = row.old_values || {};
+  const parts: string[] = [];
+
+  for (const k of DELETED_LABEL_KEYS) {
+    const v = oldVals[k];
+    if (v !== undefined && v !== null && v !== '') {
+      parts.push(String(v));
+      if (parts.length >= 2) break;
+    }
+  }
+
+  const status = oldVals['status'];
+  if (status !== undefined && status !== null && status !== '') {
+    parts.push(titleCase(String(status)));
+  }
+
+  if (parts.length > 0) {
+    return `Deleted record — ${parts.join(' • ')}`;
+  }
+  return `Deleted record (${row.record_id || '—'})`;
+}
+
+/** Inline text summary of changed fields (used for search + tooltip). */
+function changesSummaryText(row: AuditRow): string {
+  if (row.action_type === 'delete') return deletedSummary(row);
+  const fields = changedFields(row);
+  if (fields.length === 0) {
     if (row.action_type === 'create') return 'new record created';
-    if (row.action_type === 'delete') return 'record deleted';
     return '—';
   }
-  return changed.join('; ');
+  return fields.map((f) => `${f.label}: ${f.oldValue} → ${f.newValue}`).join('; ');
 }
 
 @Component({
@@ -119,7 +290,7 @@ export class AdminAuditLogsPageComponent implements OnInit, OnDestroy {
   dateTo = signal('');
 
   // Pagination
-  pageSize = 20;
+  pageSize = 15;
   currentPage = signal(1);
 
   trackByLog = (_: number, l: AuditRow): string => l.id;
@@ -160,7 +331,7 @@ export class AdminAuditLogsPageComponent implements OnInit, OnDestroy {
           l.record_id,
           l.actor_name || '',
           actionLabel(l.action_type),
-          changesSummary(l),
+          changesSummaryText(l),
         ].join(' ').toLowerCase();
         if (!haystack.includes(q)) return false;
       }
@@ -322,6 +493,8 @@ export class AdminAuditLogsPageComponent implements OnInit, OnDestroy {
   tableLabel = tableLabel;
   actionBadge = actionBadge;
   actionLabel = actionLabel;
-  changesSummary = changesSummary;
+  changedFields = changedFields;
+  deletedSummary = deletedSummary;
+  changesSummaryText = changesSummaryText;
   timeAgo = timeAgo;
 }

@@ -93,8 +93,8 @@
           *ngFor="let category of categories"
           (click)="setCategory(category)"
           [ngClass]="{
-            'bg-[#1E3A5F] text-white': activeCategory === category,
-            'bg-slate-100 text-slate-600': activeCategory !== category
+            'bg-[#1E3A5F] text-white': activeCategory() === category,
+            'bg-slate-100 text-slate-600': activeCategory() !== category
           }"
           class="px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm whitespace-nowrap"
         >
@@ -107,13 +107,14 @@
     <div class="flex items-center gap-3">
       <div class="relative flex items-center flex-1 max-w-md">
         <svg viewBox="0 0 24 24" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" placeholder="Search agencies by name or location..." [(ngModel)]="searchQuery" class="bg-white border border-slate-200 text-slate-800 placeholder-slate-400 rounded-full pl-10 pr-4 py-2 text-sm w-full shadow-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-2 focus:ring-[#1E3A5F]/15 transition-all"/>
+        <input type="text" placeholder="Search agencies by name or location..." [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)" class="bg-white border border-slate-200 text-slate-800 placeholder-slate-400 rounded-full pl-10 pr-4 py-2 text-sm w-full shadow-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-2 focus:ring-[#1E3A5F]/15 transition-all"/>
       </div>
 
       <div class="flex items-center gap-2 min-w-[190px]">
         <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">Country</label>
         <select
-          [(ngModel)]="countryFilter"
+          [ngModel]="countryFilter()"
+          (ngModelChange)="onCountryChange($event)"
           class="border border-slate-300 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] min-w-[160px] w-full"
         >
           <option value="">-- All Countries --</option>
@@ -122,7 +123,7 @@
       </div>
     </div>
 
-    <div *ngIf="filteredAgencies.length === 0" class="text-center py-16">
+    <div *ngIf="filteredAgencies().length === 0" class="text-center py-16">
       <svg viewBox="0 0 24 24" class="w-12 h-12 text-slate-400 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 21V7l8-4 8 4v14H4Z" stroke-linejoin="round"/><path d="M12 3v18" stroke-linecap="round"/></svg>
       <h2 class="text-lg font-bold text-slate-900 mb-2">No agencies found</h2>
       <p class="text-slate-500 text-sm">There are no agencies in this category yet.</p>
@@ -132,7 +133,7 @@
   </section>
 
   <!-- Agency Management Table -->
-  <section *ngIf="!loading() && !error() && filteredAgencies.length > 0" class="w-full px-8 py-6 space-y-6">
+  <section *ngIf="!loading() && !error() && filteredAgencies().length > 0" class="w-full px-8 py-6 space-y-6">
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
@@ -148,7 +149,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <tr *ngFor="let agency of filteredAgencies; trackBy: trackByAgency" class="hover:bg-slate-50 transition-colors">
+            <tr *ngFor="let agency of pagedAgencies(); trackBy: trackByAgency" class="hover:bg-slate-50 transition-colors">
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-[#1E3A5F]">
@@ -197,9 +198,37 @@
                 </button>
               </td>
             </tr>
+            <tr *ngIf="pagedAgencies().length === 0 && filteredAgencies().length > 0">
+              <td colspan="7" class="px-6 py-8 text-center text-sm text-slate-500">No agencies on this page.</td>
+            </tr>
           </tbody>
         </table>
       </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages() > 0" class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+      <button
+        (click)="previousPage()"
+        [disabled]="currentPage() === 1"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="{
+          'bg-[#1E3A5F] text-white': currentPage() > 1,
+          'bg-slate-100 text-slate-500': currentPage() === 1
+        }">
+        Prev
+      </button>
+      <span class="text-xs text-slate-500">Page {{ currentPage() }} of {{ totalPages() }}</span>
+      <button
+        (click)="nextPage()"
+        [disabled]="currentPage() === totalPages()"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="{
+          'bg-[#1E3A5F] text-white': currentPage() < totalPages(),
+          'bg-slate-100 text-slate-500': currentPage() === totalPages()
+        }">
+        Next
+      </button>
+    </div>
     </div>
   </section>
 

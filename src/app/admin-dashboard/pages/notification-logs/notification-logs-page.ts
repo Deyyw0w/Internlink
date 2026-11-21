@@ -103,23 +103,23 @@ function timeAgo(iso: string | null): string {
 
       <!-- Stats Bar -->
       <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Total Logs</p>
           <p class="text-2xl font-bold text-slate-900">{{ notificationStats().total }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Applications</p>
           <p class="text-2xl font-bold text-slate-900">{{ notificationStats().applications }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Documents</p>
           <p class="text-2xl font-bold text-slate-900">{{ notificationStats().requirements }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Admin Actions</p>
           <p class="text-2xl font-bold text-slate-900">{{ notificationStats().adminActions }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
           <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Latest Activity</p>
           <p class="text-2xl font-bold text-slate-900">{{ notificationStats().latest }}</p>
         </div>
