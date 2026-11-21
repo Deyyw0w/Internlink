@@ -67,17 +67,32 @@ function actionLabel(action: string): string {
   return map[action] || action;
 }
 
-/** Short, readable description of changed fields for a row. */
+/** Short, readable description of changed fields with old → new values.
+ *  Example: "status: under-review → approved; admin_notes: — → Documents verified"
+ */
 function changesSummary(row: AuditRow): string {
   const oldVals = row.old_values || {};
   const newVals = row.new_values || {};
   const changed: string[] = [];
   const allKeys = new Set([...Object.keys(oldVals), ...Object.keys(newVals)]);
   allKeys.forEach((k) => {
-    if (String(oldVals[k]) !== String(newVals[k])) changed.push(k);
+    const oldV = oldVals[k];
+    const newV = newVals[k];
+    if (String(oldV) !== String(newV)) {
+      const oldStr = oldV === undefined || oldV === null ? '—' : String(oldV);
+      const newStr = newV === undefined || newV === null ? '—' : String(newV);
+      // Truncate long values so the table cell stays readable.
+      const truncatedOld = oldStr.length > 35 ? oldStr.slice(0, 35) + '…' : oldStr;
+      const truncatedNew = newStr.length > 35 ? newStr.slice(0, 35) + '…' : newStr;
+      changed.push(`${k}: ${truncatedOld} → ${truncatedNew}`);
+    }
   });
-  if (changed.length === 0) return '—';
-  return changed.join(', ');
+  if (changed.length === 0) {
+    if (row.action_type === 'create') return 'new record created';
+    if (row.action_type === 'delete') return 'record deleted';
+    return '—';
+  }
+  return changed.join('; ');
 }
 
 @Component({

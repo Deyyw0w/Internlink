@@ -130,7 +130,7 @@
             </td>
             <td class="px-6 py-4 text-sm text-slate-700 font-medium">{{ tableLabel(l.table_name) }}</td>
             <td class="px-6 py-4 text-sm text-slate-900">{{ l.record_id }}</td>
-            <td class="px-6 py-4 text-sm text-slate-600" [title]="changesSummary(l)">
+            <td class="px-6 py-4 text-sm text-slate-600 break-words" [title]="changesSummary(l)">
               <span *ngIf="changesSummary(l) === '—'" class="text-slate-400 italic">—</span>
               <span *ngIf="changesSummary(l) !== '—'">{{ changesSummary(l) }}</span>
             </td>
