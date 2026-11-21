@@ -56,3 +56,6 @@ devserver.log
 
 # Claude Code project files
 .claude/
+
+# Supabase local temp files
+supabase/.temp/

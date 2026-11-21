@@ -32,6 +32,16 @@ export interface AppHistoryEntry {
   template: `
     <main class="w-full px-8 py-6 space-y-6">
 
+      <!-- Admin decision notification (removal-request outcomes) -->
+      <div *ngIf="notification()" class="rounded-xl p-4 mb-6 shadow-sm"
+           [ngClass]="{
+             'bg-emerald-50 border border-emerald-200 text-emerald-800': notification()?.type === 'success',
+             'bg-amber-50 border border-amber-200 text-amber-800': notification()?.type === 'info',
+             'bg-rose-50 border border-rose-200 text-rose-800': notification()?.type === 'warn'
+           }">
+        {{ notification()?.message }}
+      </div>
+
       <!-- Two-column responsive grid: left 8/12, right 4/12 -->
       <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -197,6 +207,14 @@ export class MyApplicationPageComponent implements OnInit, OnDestroy {
   confirmMessage = signal('');
   confirmLabel = signal('Request Removal');
 
+  // In-app notification shown when the admin approves/dismisses a removal request.
+  notification = signal<{ type: 'success' | 'info' | 'warn'; message: string } | null>(null);
+
+  clearNotification(): void {
+    this.notification.set(null);
+    this.cdr.markForCheck();
+  }
+
   getStatusBadge(status: string) {
     const s = (status || '').toLowerCase();
     if (s === 'verified') return 'bg-[#1E3A5F]/10 text-[#1E3A5F] border-[#1E3A5F]/20';
@@ -351,12 +369,12 @@ export class MyApplicationPageComponent implements OnInit, OnDestroy {
         };
 
         // Request removal: set status to removal-requested (admin must approve the actual delete).
+        // updated_at is intentionally omitted — it's managed by the DB trigger / PostgREST schema cache.
         const { error } = await supabase
           .from('internship_applications')
           .update({
             status: 'removal-requested',
             admin_notes: null,
-            updated_at: new Date().toISOString(),
           })
           .eq('id', application.id);
         if (error) throw error;
@@ -368,7 +386,7 @@ export class MyApplicationPageComponent implements OnInit, OnDestroy {
             tableName: 'internship_applications',
             recordId: application.id,
             oldValues,
-            newValues: { status: 'removal-requested', admin_notes: null, updated_at: new Date().toISOString() },
+            newValues: { status: 'removal-requested', admin_notes: null },
           });
         } catch (auditErr) {
           console.error('[MyApplication] Audit log (update) failed:', auditErr);
@@ -386,7 +404,7 @@ export class MyApplicationPageComponent implements OnInit, OnDestroy {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to submit removal request.';
-      console.error('[MyApplication] Request removal failed:', message);
+      console.error('[MyApplication] Request removal failed:', err);
       alert(`Failed to submit removal request: ${message}`);
     } finally {
       this.confirmIsDeleting.set(false);
@@ -422,18 +440,32 @@ export class MyApplicationPageComponent implements OnInit, OnDestroy {
           const newApp = payload.new as any;
           const oldApp = payload.old as any;
 
-          // Admin deleted this application
+          // Admin deleted this application (= approved the removal request)
           if (!newApp && oldApp?.student_id === studentIdText) {
             this.application = null;
             this.appRef = '—';
             this.appStatus = 'Requirements';
             this.adminNotes.set(null);
             this.buildHistory();
+            this.notification.set({
+              type: 'success',
+              message: 'Your removal request has been approved by the admin. Your application has been removed.',
+            });
             this.cdr.markForCheck();
             return;
           }
 
           if (newApp?.student_id === studentIdText) {
+            // Admin dismissed the removal request (status reverted back to under-review)
+            const wasRemovalRequested = oldApp?.status === 'removal-requested';
+            const backToReview = newApp.status === 'under-review';
+            if (wasRemovalRequested && backToReview) {
+              this.notification.set({
+                type: 'info',
+                message: 'The admin dismissed your removal request. Your application is back under review.',
+              });
+            }
+
             this.application = newApp;
             this.appRef = newApp.reference_number || '—';
             this.appStatus = newApp.status || 'Requirements';
