@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ProfileService } from '../../../auth/profile.service';
 import { supabase } from '../../../../environments/supabase.config';
@@ -134,6 +134,14 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   private authSubscription: any = null;
   private applicationsSubscription: any = null;
 
+  /** In-app notification shown when the admin makes changes to the student's application. */
+  notification = signal<{ type: 'success' | 'info' | 'warn'; message: string } | null>(null);
+
+  clearNotification(): void {
+    this.notification.set(null);
+    this.cdr.markForCheck();
+  }
+
   async ngOnInit(): Promise<void> {
     console.log('[Dashboard] ngOnInit started');
 
@@ -208,6 +216,41 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
           }
 
           if (newApp?.student_id === studentIdText) {
+            // Show an in-app notification for any admin-driven status change.
+            const oldStatus = (oldApp?.status || '').toLowerCase();
+            const newStatus = (newApp.status || '').toLowerCase();
+            const company = newApp.host_company || 'your application';
+            const ref = newApp.reference_number || '—';
+
+            if (oldStatus !== newStatus) {
+              if (newStatus === 'approved') {
+                this.notification.set({
+                  type: 'success',
+                  message: `Your application for <strong>${company}</strong> (Ref: ${ref}) has been approved for endorsement.`,
+                });
+              } else if (newStatus === 'rejected') {
+                this.notification.set({
+                  type: 'warn',
+                  message: `Your application for <strong>${company}</strong> (Ref: ${ref}) has been rejected.`,
+                });
+              } else if (newStatus === 'under-review') {
+                this.notification.set({
+                  type: 'info',
+                  message: `Your application for <strong>${company}</strong> (Ref: ${ref}) has been returned to review.`,
+                });
+              } else if (newStatus === 'requirements-incomplete') {
+                this.notification.set({
+                  type: 'warn',
+                  message: `Your application for <strong>${company}</strong> (Ref: ${ref}) is marked as requirements incomplete.`,
+                });
+              } else if (newStatus === 'removal-requested') {
+                this.notification.set({
+                  type: 'info',
+                  message: `Your removal request for <strong>${company}</strong> (Ref: ${ref}) is pending admin approval.`,
+                });
+              }
+            }
+
             this.internshipApplication = newApp;
             this.cdr.markForCheck();
           }
