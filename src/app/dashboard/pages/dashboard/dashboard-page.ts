@@ -132,6 +132,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   knownDegrees = new Set<string>();
 
   private authSubscription: any = null;
+  private applicationsSubscription: any = null;
 
   async ngOnInit(): Promise<void> {
     console.log('[Dashboard] ngOnInit started');
@@ -151,6 +152,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     }
 
     await this.loadProfile(session.user);
+    await this.subscribeToApplicationUpdates();
 
     // Listen to auth state changes (covers page refreshes and redirects)
     this.authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -175,6 +177,45 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     if (typeof this.authSubscription?.unsubscribe === 'function') {
       this.authSubscription.unsubscribe();
     }
+    if (typeof this.applicationsSubscription?.unsubscribe === 'function') {
+      this.applicationsSubscription.unsubscribe();
+      this.applicationsSubscription = null;
+    }
+  }
+
+  /** Subscribe to real-time application changes so the student dashboard
+   *  reflects admin approvals/rejections/removals instantly without a page refresh. */
+  private subscribeToApplicationUpdates(): void {
+    const studentId = this.studentId;
+    if (!studentId) return;
+
+    const studentIdText = String(studentId);
+
+    this.applicationsSubscription = supabase
+      .channel('student-dashboard-application-updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'internship_applications' },
+        (payload) => {
+          const newApp = payload.new as any;
+          const oldApp = payload.old as any;
+
+          // Admin deleted this application (= approved removal request)
+          if (!newApp && oldApp?.student_id === studentIdText) {
+            this.internshipApplication = null;
+            this.cdr.markForCheck();
+            return;
+          }
+
+          if (newApp?.student_id === studentIdText) {
+            this.internshipApplication = newApp;
+            this.cdr.markForCheck();
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Dashboard] Realtime channel (internship_applications) status:', status);
+      });
   }
 
   private async loadProfile(user: any): Promise<void> {
