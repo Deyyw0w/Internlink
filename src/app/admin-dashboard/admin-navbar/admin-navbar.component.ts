@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { supabase } from '../../../environments/supabase.config';
 import { ProfileService } from '../../auth/profile.service';
+import { NotificationsDropdownComponent } from '../../shared/components/notifications-dropdown/notifications-dropdown.component';
 
 @Component({
   selector: 'app-admin-navbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NotificationsDropdownComponent],
   templateUrl: './admin-navbar.component.html',
 })
 export class AdminNavbarComponent implements OnInit, OnDestroy {

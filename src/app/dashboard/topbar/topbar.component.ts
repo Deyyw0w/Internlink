@@ -3,11 +3,12 @@ import { Component, computed, inject, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { supabase } from '../../../environments/supabase.config';
 import { ProfileService } from '../../auth/profile.service';
+import { NotificationsDropdownComponent } from '../../shared/components/notifications-dropdown/notifications-dropdown.component';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NotificationsDropdownComponent],
   templateUrl: './topbar.component.html',
 })
 export class TopbarComponent implements OnInit, OnDestroy {
