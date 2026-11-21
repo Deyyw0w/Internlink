@@ -527,14 +527,14 @@
     <div class="p-6">
       <table class="w-full text-left border-collapse">
         <thead>
-          <tr class="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-            <th class="px-6 py-3">Name</th>
-            <th class="px-6 py-3">Email</th>
-            <th class="px-6 py-3">ID</th>
-            <th class="px-6 py-3">Course</th>
-            <th class="px-6 py-3">Role</th>
-            <th class="px-6 py-3">Created</th>
-            <th class="px-6 py-3 text-right">Actions</th>
+          <tr class="bg-[#1E3A5F] text-xs font-bold uppercase tracking-wider text-white border-b border-[#1E3A5F]">
+            <th class="px-6 py-3 text-center">Name</th>
+            <th class="px-6 py-3 text-center">Email</th>
+            <th class="px-6 py-3 text-center">ID</th>
+            <th class="px-6 py-3 text-center">Course</th>
+            <th class="px-6 py-3 text-center">Role</th>
+            <th class="px-6 py-3 text-center">Created</th>
+            <th class="px-6 py-3 text-center">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
@@ -551,7 +551,7 @@
               <span [ngClass]="roleBadgeClass(account.role)">{{ account.role }}</span>
             </td>
             <td class="px-6 py-4 text-sm text-slate-500">{{ account.created_at | date:'shortDate' }}</td>
-            <td class="px-6 py-4 text-right">
+            <td class="px-6 py-4">
               <div class="flex items-center gap-2">
                 <button
                   type="button"

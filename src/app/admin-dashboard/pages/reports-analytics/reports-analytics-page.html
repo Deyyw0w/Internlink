@@ -86,24 +86,9 @@
   <section *ngIf="!loading()" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <div
       *ngFor="let card of statCards(); trackBy: trackByStat"
-      class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col"
+      class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col"
     >
-      <div class="flex justify-between items-start mb-3">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center" [ngClass]="statIconBg(card.tone)">
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" [ngClass]="statIconColor(card.tone)">
-            <ng-container *ngIf="card.icon === 'users'"><circle cx="12" cy="5" r="2"/><path d="M6 12a6 6 0 1112 0 6 6 0 01-12 0z"/></ng-container>
-            <ng-container *ngIf="card.icon === 'clock'"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></ng-container>
-            <ng-container *ngIf="card.icon === 'check'"><polyline points="20 6 9 17 4 12"/></ng-container>
-            <ng-container *ngIf="card.icon === 'building'"><path d="M1 3h22v16a2 2 0 01-2 2H3a2 2 0 01-2-2V3z"/></ng-container>
-            <ng-container *ngIf="card.icon === 'file-text'"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13h-3"/><path d="M16 17H9"/></ng-container>
-          </svg>
-        </div>
-        <div
-          class="w-2 h-2 rounded-full"
-          [ngClass]="{ 'bg-emerald-500': card.deltaUp === true, 'bg-rose-500': card.deltaUp === false }"
-        ></div>
-      </div>
-      <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ card.label }}</p>
+      <p class="text-xs font-bold uppercase tracking-wider text-[#1E3A5F] mb-1">{{ card.label }}</p>
       <p class="text-2xl font-bold text-slate-900 mb-1">{{ card.value }}</p>
       <p class="text-xs font-medium" [ngClass]="card.deltaUp === true ? 'text-emerald-600' : 'text-rose-600'">
         {{ card.delta === '—' ? 'No prior data' : card.delta !== null ? card.delta + ' vs prev.' : '—' }}
@@ -220,7 +205,7 @@
     <h3 class="text-base font-bold text-slate-900 mb-4">Document Verification Status</h3>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div *ngFor="let s of docStatusTypes()" class="bg-slate-50 rounded-xl p-4 text-center">
-        <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ statusLabel(s) }}</p>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#1E3A5F] mb-1">{{ statusLabel(s) }}</p>
         <p class="text-2xl font-bold text-slate-900">{{ (docStatusCounts()[s] || 0) }}</p>
       </div>
     </div>
@@ -234,14 +219,14 @@
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-left">
-        <thead class="bg-slate-50">
+        <thead class="bg-[#1C3A63] border-b border-[#1C3A63]">
           <tr>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Reference</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Student</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Company</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Position</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Date</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Reference</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Student</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Company</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Position</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Status</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Date</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-50">
@@ -258,7 +243,7 @@
                 {{ statusLabel(a.status) }}
               </span>
             </td>
-            <td class="px-6 py-4 text-sm text-slate-500 text-right">
+            <td class="px-6 py-4 text-sm text-slate-500">
               {{ a.submitted_at ? (a.submitted_at | date:'shortDate') : '—' }}
             </td>
           </tr>

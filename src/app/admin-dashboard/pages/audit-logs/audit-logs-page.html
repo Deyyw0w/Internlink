@@ -107,14 +107,14 @@
 
     <div class="overflow-x-auto">
       <table class="w-full text-left">
-        <thead class="bg-slate-50">
+        <thead class="bg-[#1E3A5F] border-b border-[#1E3A5F]">
           <tr>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Time</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Action</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Table</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Record</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Changed fields</th>
-            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Admin</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Time</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Action</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Table</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Record</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Changed fields</th>
+            <th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-white text-center">Admin</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-50">
@@ -134,7 +134,7 @@
               <span *ngIf="changesSummary(l) === '—'" class="text-slate-400 italic">—</span>
               <span *ngIf="changesSummary(l) !== '—'">{{ changesSummary(l) }}</span>
             </td>
-            <td class="px-6 py-4 text-sm text-right text-slate-600">{{ actor(l.performed_by, l.actor_name) }}</td>
+            <td class="px-6 py-4 text-sm text-slate-600">{{ actor(l.performed_by, l.actor_name) }}</td>
           </tr>
           <tr *ngIf="pagedLogs().length === 0">
             <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500">

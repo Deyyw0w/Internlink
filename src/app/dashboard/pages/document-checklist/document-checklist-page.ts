@@ -87,7 +87,8 @@ const STORAGE_BUCKET = 'internship-documents';
             <!-- Upload File: student can submit or re-upload; status is set by admin -->
             <button type="button" class="inline-flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162C49] text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm shrink-0" (click)="fileInput.click()">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5m0 0l5-5m-5 5V3"/></svg>
-              Upload File
+              <span *ngIf="doc.status === 'rejected'">Resubmit File</span>
+              <span *ngIf="doc.status !== 'rejected'">Upload File</span>
             </button>
           </div>
         </div>

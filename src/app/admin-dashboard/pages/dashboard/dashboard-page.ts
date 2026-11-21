@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { RouterModule } from '@angular/router';
 
 import { NewsCarouselComponent, NewsItem } from '../../news-carousel/news-carousel.component';
 import { supabase } from '../../../../environments/supabase.config';
@@ -18,7 +19,7 @@ interface StatCard {
 @Component({
   selector: 'app-admin-dashboard-page',
   standalone: true,
-  imports: [CommonModule, NewsCarouselComponent],
+  imports: [CommonModule, RouterModule, NewsCarouselComponent],
   templateUrl: './dashboard-page.html',
 })
 export class AdminDashboardPageComponent implements OnInit, OnDestroy {
@@ -31,6 +32,20 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   error = signal<string | null>(null);
 
   trackByStat = (_: number, item: StatCard): string => item.label;
+  statRoute(card: StatCard): string {
+    switch (card.label) {
+      case 'PENDING DOCUMENTS':
+        return '/admin-dashboard/document-checklist';
+      case 'APPLICATIONS TODAY':
+        return '/admin-dashboard/student-applicants';
+      case 'ACTIVE AGENCIES':
+        return '/admin-dashboard/partner-agencies';
+      case 'NEW STUDENTS THIS MONTH':
+        return '/admin-dashboard/accounts-management';
+      default:
+        return '/admin-dashboard/dashboard';
+    }
+  }
   trackByNews = (_: number, item: NewsItem): string => item.title;
 
   async ngOnInit(): Promise<void> {

@@ -109,6 +109,33 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   confirmMessage = signal('');
   confirmLabel = signal('Delete');
 
+  // Add applicant modal state
+  showAddApplicant = signal(false);
+  addForm = signal<{
+    studentId: string;
+    referenceNumber: string;
+    hostCompany: string;
+    positionRole: string;
+    status: ApplicationStatus;
+  }>({
+    studentId: '',
+    referenceNumber: '',
+    hostCompany: '',
+    positionRole: '',
+    status: 'under-review',
+  });
+  isAddingApplicant = signal(false);
+  addErrors = signal<Record<string, string>>({});
+  addSubmitError = signal('');
+
+  /** Student profiles (role = 'student') used for the add-applicant student dropdown. */
+  availableStudents = signal<{
+    id: string;
+    student_id: string;
+    full_name: string;
+    degree_program: string | null;
+  }[]>([]);
+
   trackByApplicant = (_: number, applicant: Applicant): string => applicant.refNumber;
 
   trackByString = (_: number, s: string): string => s;
@@ -245,9 +272,183 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  /** Open the add applicant modal. */
+  openAddApplicant(): void {
+    this.addForm.set({
+      studentId: '',
+      referenceNumber: '',
+      hostCompany: '',
+      positionRole: '',
+      status: 'under-review',
+    });
+    this.addErrors.set({});
+    this.addSubmitError.set('');
+    this.showAddApplicant.set(true);
+    this.cdr.markForCheck();
+  }
+
+  /** Close the add applicant modal. */
+  closeAddApplicant(): void {
+    this.showAddApplicant.set(false);
+    this.addForm.set({
+      studentId: '',
+      referenceNumber: '',
+      hostCompany: '',
+      positionRole: '',
+      status: 'under-review',
+    });
+    this.addErrors.set({});
+    this.addSubmitError.set('');
+    this.cdr.markForCheck();
+  }
+
+  /** Handle student selection change in the add-applicant modal. */
+  onAddStudentChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.addForm.update((f) => ({ ...f, studentId: (target.value || '').trim() }));
+    this.clearAddErrors();
+  }
+
+  /** Handle reference number input change in the add-applicant modal. */
+  onAddReferenceNumberChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.addForm.update((f) => ({ ...f, referenceNumber: (target.value || '').trim() }));
+    this.clearAddErrors();
+  }
+
+  /** Handle host company input change in the add-applicant modal. */
+  onAddHostCompanyChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.addForm.update((f) => ({ ...f, hostCompany: (target.value || '').trim() }));
+    this.clearAddErrors();
+  }
+
+  /** Handle position role input change in the add-applicant modal. */
+  onAddPositionRoleChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.addForm.update((f) => ({ ...f, positionRole: (target.value || '').trim() }));
+    this.clearAddErrors();
+  }
+
+  /** Handle status select change in the add-applicant modal. */
+  onAddStatusChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.addForm.update((f) => ({ ...f, status: (target.value || 'under-review') as ApplicationStatus }));
+    this.clearAddErrors();
+  }
+
+  /** Clear field-level error for the given field as the user types. */
+  clearAddFieldError(field: string): void {
+    this.addErrors.update((e) => {
+      const { [field]: _, ...rest } = e;
+      return rest;
+    });
+    this.addSubmitError.set('');
+  }
+
+  /** Clear all field-level + submit errors for the add-applicant modal. */
+  clearAddErrors(): void {
+    this.addErrors.set({});
+    this.addSubmitError.set('');
+  }
+
+  /** Save the new applicant: validate fields, look up student name/degree program,
+   *  insert into internship_applications, audit log create, reload list. */
+  async onAddApplicantSubmit(): Promise<void> {
+    this.clearAddErrors();
+
+    let valid = true;
+
+    if (!this.addForm().studentId?.trim()) {
+      this.addErrors.update((e) => ({ ...e, studentId: 'Please select a student.' }));
+      valid = false;
+    }
+
+    if (!this.addForm().referenceNumber?.trim()) {
+      this.addErrors.update((e) => ({ ...e, referenceNumber: 'Reference number is required.' }));
+      valid = false;
+    }
+
+    if (!this.addForm().hostCompany?.trim()) {
+      this.addErrors.update((e) => ({ ...e, hostCompany: 'Host company is required.' }));
+      valid = false;
+    }
+
+    if (!this.addForm().positionRole?.trim()) {
+      this.addErrors.update((e) => ({ ...e, positionRole: 'Position/role is required.' }));
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    this.isAddingApplicant.set(true);
+
+    try {
+      // Resolve the selected student's name and degree program (stored directly on the row
+      // to avoid joining profiles, which triggers RLS recursion in this codebase).
+      let studentName = '—';
+      let degreeProgram = (null as unknown) as string | null;
+
+      const student = this.availableStudents().find((s) => s.student_id === this.addForm().studentId);
+      if (student) {
+        studentName = student.full_name;
+        degreeProgram = student.degree_program ?? null;
+      }
+
+      const { error: insertError } = await supabase
+        .from('internship_applications')
+        .insert({
+          student_id: this.addForm().studentId.trim(),
+          student_name: studentName,
+          degree_program: degreeProgram,
+          reference_number: this.addForm().referenceNumber.trim(),
+          host_company: this.addForm().hostCompany.trim(),
+          position_role: this.addForm().positionRole.trim(),
+          status: this.addForm().status,
+          submitted_at: new Date().toISOString(),
+        });
+
+      if (insertError) throw insertError;
+
+      // Audit log the create action (best-effort; never blocks the UI).
+      try {
+        const insertedId = 'new-application'; // best-effort only; record_id is informational
+        await this.auditLog.logActivity({
+          actionType: 'create',
+          tableName: 'internship_applications',
+          recordId: insertedId,
+          oldValues: null,
+          newValues: {
+            student_id: this.addForm().studentId.trim(),
+            student_name: studentName,
+            degree_program: degreeProgram,
+            reference_number: this.addForm().referenceNumber.trim(),
+            host_company: this.addForm().hostCompany.trim(),
+            position_role: this.addForm().positionRole.trim(),
+            status: this.addForm().status,
+            submitted_at: new Date().toISOString(),
+          },
+        });
+      } catch (auditErr) {
+        console.error('[StudentApplicants] Audit log (create) failed:', auditErr);
+      }
+
+      this.closeAddApplicant();
+      await this.loadApplicants(); // refresh list so the new applicant appears
+      this.cdr.markForCheck();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add applicant.';
+      console.error('[StudentApplicants] Add applicant failed:', message);
+      this.addSubmitError.set(message);
+    } finally {
+      this.isAddingApplicant.set(false);
+    }
+  }
+
   async ngOnInit(): Promise<void> {
     await this.loadApplicants();
     await this.loadDegreePrograms();
+    await this.loadStudents();
     this.subscribeToUpdates();
   }
 
@@ -291,6 +492,30 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('[StudentApplicants] Error loading degree programs:', err);
       // Leave the dropdown with just "All USLT Programs" if the fetch fails.
+    }
+  }
+
+  /** Load student profiles for the add-applicant student dropdown. */
+  async loadStudents(): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, student_id, full_name, degree_program')
+        .eq('role', 'student')
+        .order('full_name', { ascending: true });
+
+      if (error) throw error;
+
+      const students = (data || []) as {
+        id: string;
+        student_id: string;
+        full_name: string;
+        degree_program: string | null;
+      }[];
+      this.availableStudents.set(students);
+    } catch (err) {
+      console.error('[StudentApplicants] Failed to load students:', err);
+      // Non-blocking: the dropdown will simply be empty.
     }
   }
 

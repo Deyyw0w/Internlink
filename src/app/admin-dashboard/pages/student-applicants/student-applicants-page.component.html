@@ -10,9 +10,26 @@
         </p>
       </div>
 
-      <span class="inline-flex items-center rounded-full bg-blue-600/20 px-3 py-1.5 text-xs font-semibold border border-blue-600/30 text-blue-100">
-        Total Records: {{ filteredApplicants().length }} Students
-      </span>
+      <!-- Right Side: Total Records + Add Applicant button (matches document-checklist header pattern) -->
+      <div class="flex flex-wrap gap-3 items-end lg:items-end">
+        <span class="inline-flex items-center rounded-full bg-blue-600/20 px-3 py-1.5 text-xs font-semibold border border-blue-600/30 text-blue-100">
+          Total Records: {{ filteredApplicants().length }} Students
+        </span>
+
+        <!-- Add Applicant Button -->
+        <button
+          type="button"
+          (click)="openAddApplicant()"
+          [disabled]="isAddingApplicant()"
+          class="flex items-center gap-2 bg-white text-[#1E3A5F] hover:not([disabled]):bg-slate-100 font-semibold text-xs px-4 py-2 rounded-xl shadow-sm border border-white/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span *ngIf="!isAddingApplicant()">Add Applicant</span>
+          <span *ngIf="isAddingApplicant()">Adding…</span>
+        </button>
+      </div>
     </div>
 
     <div class="grid gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 items-end">
@@ -117,15 +134,15 @@
   <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
-      <thead class="bg-slate-50 border-b border-slate-200/80">
+      <thead class="bg-[#1E3A5F] border-b border-[#1E3A5F]">
         <tr>
-          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Ref Number</th>
-          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Student Applicant</th>
-          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Degree Program</th>
-          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Host Company / Role</th>
-          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Documents</th>
-          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Current Status</th>
-          <th class="px-6 py-4 text-xs font-semibold text-slate-500 tracking-wider uppercase">Actions</th>
+          <th class="px-6 py-4 text-xs font-semibold text-white tracking-wider uppercase text-center">Ref Number</th>
+          <th class="px-6 py-4 text-xs font-semibold text-white tracking-wider uppercase text-center">Student Applicant</th>
+          <th class="px-6 py-4 text-xs font-semibold text-white tracking-wider uppercase text-center">Degree Program</th>
+          <th class="px-6 py-4 text-xs font-semibold text-white tracking-wider uppercase text-center">Host Company / Role</th>
+          <th class="px-6 py-4 text-xs font-semibold text-white tracking-wider uppercase text-center">Documents</th>
+          <th class="px-6 py-4 text-xs font-semibold text-white tracking-wider uppercase text-center">Current Status</th>
+          <th class="px-6 py-4 text-xs font-semibold text-white tracking-wider uppercase text-center">Actions</th>
         </tr>
       </thead>
 
@@ -146,42 +163,26 @@
 
           <td class="px-6 py-4">
             <div class="text-slate-900 font-semibold">{{ applicant.company }}</div>
-            <div class="mt-0.5 text-xs font-medium text-blue-600">{{ applicant.role }}</div>
+            <div class="mt-0.5 text-xs font-medium text-[#1C3A63] font-semibold">{{ applicant.role }}</div>
           </td>
 
           <td class="px-6 py-4">
-            <!-- Documents status pill -->
+            <!-- Documents status pill + count -->
             <span
               [ngClass]="documentsPillClass(applicant.documentsStatus)"
+              class="whitespace-nowrap"
             >
               <span [class]="documentsPillDotClass(applicant.documentsStatus)"></span>
               {{ documentsPillLabel(applicant.documentsStatus) }}
             </span>
-            <!-- Uploaded file names -->
-            <div
-              *ngIf="applicant.uploadedFiles.length > 0; else noDocs"
-              class="flex flex-wrap gap-1 mt-1"
-            >
-              <span
-                *ngFor="let f of applicant.uploadedFiles"
-                class="text-xs text-slate-600 truncate max-w-[130px]"
-                [title]="f"
-              >
-                {{ f }}
-              </span>
-            </div>
-            <ng-template #noDocs>
-              <div class="text-xs text-slate-400 italic mt-1">No documents</div>
-            </ng-template>
-            <!-- Count -->
-            <div class="text-xs text-slate-500 mt-1">{{ applicant.documentsComplete }}</div>
+            <div class="text-xs text-slate-500 mt-1 whitespace-nowrap">{{ applicant.documentsComplete }}</div>
           </td>
 
           <td class="px-6 py-4">
             <span
-              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold uppercase tracking-wider border"
+              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold uppercase tracking-wider border border-amber-200 whitespace-nowrap"
               [ngClass]="{
-                'bg-amber-50 text-amber-700 border border-amber-200': applicant.status === 'under-review',
+                'bg-amber-50 text-amber-700': applicant.status === 'under-review',
                 'bg-emerald-50 text-emerald-700 border border-emerald-200': applicant.status === 'approved',
                 'bg-rose-50 text-rose-700 border border-rose-200': applicant.status === 'requirements-incomplete'
               }"
@@ -203,7 +204,7 @@
               <button
                 type="button"
                 (click)="onReviewDecision(applicant)"
-                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors"
+                class="bg-[#1C3A63] hover:bg-[#162C49] text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors whitespace-nowrap"
               >
                 Review & Decision
               </button>
@@ -211,7 +212,7 @@
                 type="button"
                 (click)="deleteApplicant(applicant)"
                 [disabled]="isDeletingApplicant() === applicant.id"
-                class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 <span *ngIf="isDeletingApplicant() !== applicant.id" class="flex items-center justify-center gap-2">
                   <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zM17 6H7v13h10zM9 17h2V8H9zm4 0h2V8h-2zM7 6v13z"/></svg>
@@ -458,5 +459,155 @@
     (confirm)="handleConfirm()"
     (cancel)="handleConfirmCancel()"
   ></app-confirm-dialog>
+
+  <!-- Add Applicant Modal (create new internship application) -->
+  <div *ngIf="showAddApplicant()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" (click)="closeAddApplicant()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200" (click)="$event.stopPropagation()">
+      <div class="p-6 border-b border-slate-200 flex justify-between items-start">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Add Applicant</h2>
+          <p class="text-sm text-slate-500 mt-1">Create a new internship application record for a student.</p>
+        </div>
+        <button
+          type="button"
+          (click)="closeAddApplicant()"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form (ngSubmit)="onAddApplicantSubmit()" novalidate>
+        <div class="p-6 space-y-5">
+
+          <!-- Student -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Student</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['studentId'] }">
+              <select
+                id="addStudentId"
+                [ngModel]="addForm().studentId"
+                (change)="onAddStudentChange($event)"
+                name="addStudentId"
+                required
+                class="w-full pl-4 pr-10 py-3 text-sm text-slate-900 outline-none bg-transparent border-none appearance-none"
+              >
+                <option value="">Select a student</option>
+                <option *ngFor="let s of availableStudents()" [value]="s.student_id">{{ s.full_name }} ({{ s.student_id }})</option>
+              </select>
+            </div>
+            <p *ngIf="addErrors()['studentId']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['studentId'] }}</p>
+          </div>
+
+          <!-- Reference Number -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Reference Number</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['referenceNumber'] }">
+              <input
+                id="addReferenceNumber"
+                type="text"
+                placeholder="e.g. APP-2025-001"
+                [ngModel]="addForm().referenceNumber"
+                (input)="onAddReferenceNumberChange($event)"
+                name="addReferenceNumber"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['referenceNumber']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['referenceNumber'] }}</p>
+          </div>
+
+          <!-- Host Company -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Host Company</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['hostCompany'] }">
+              <input
+                id="addHostCompany"
+                type="text"
+                placeholder="e.g. Acme Corp"
+                [ngModel]="addForm().hostCompany"
+                (input)="onAddHostCompanyChange($event)"
+                name="addHostCompany"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['hostCompany']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['hostCompany'] }}</p>
+          </div>
+
+          <!-- Position / Role -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Position / Role</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['positionRole'] }">
+              <input
+                id="addPositionRole"
+                type="text"
+                placeholder="e.g. Software Engineering Intern"
+                [ngModel]="addForm().positionRole"
+                (input)="onAddPositionRoleChange($event)"
+                name="addPositionRole"
+                required
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
+              />
+            </div>
+            <p *ngIf="addErrors()['positionRole']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['positionRole'] }}</p>
+          </div>
+
+          <!-- Status -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
+            <div class="relative rounded-xl border bg-slate-50 flex items-center"
+                 [ngClass]="{ 'border-rose-500': addErrors()['status'] }">
+              <select
+                id="addStatus"
+                [ngModel]="addForm().status"
+                (change)="onAddStatusChange($event)"
+                name="addStatus"
+                required
+                class="w-full pl-4 pr-10 py-3 text-sm text-slate-900 outline-none bg-transparent border-none appearance-none cursor-pointer"
+              >
+                <option value="under-review">Under Review</option>
+                <option value="approved">Approved</option>
+                <option value="requirements-incomplete">Requirements Incomplete</option>
+              </select>
+            </div>
+            <p *ngIf="addErrors()['status']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['status'] }}</p>
+          </div>
+
+          <!-- Submit Error -->
+          <div *ngIf="addSubmitError()" class="bg-red-50 border-l-4 border-red-500 text-red-800 p-3 rounded-r text-sm">
+            {{ addSubmitError() }}
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              (click)="closeAddApplicant()"
+              [disabled]="isAddingApplicant()"
+              class="flex-1 border border-slate-200 text-slate-700 font-semibold py-3 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              [disabled]="isAddingApplicant()"
+              class="flex-1 bg-[#1E3A5F] hover:not([disabled]):bg-[#162C49] text-white font-semibold py-3 rounded-xl shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span *ngIf="!isAddingApplicant()" class="flex items-center justify-center gap-2">Create Applicant</span>
+              <span *ngIf="isAddingApplicant()" class="flex items-center justify-center gap-2">
+                <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Creating…
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
 </main>

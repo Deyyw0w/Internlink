@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { supabase } from '../../../../environments/supabase.config';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { AuditLogService } from '../../../shared/services/audit-log.service';
 
 type DocumentStatus = 'verified' | 'pending' | 'rejected';
 
@@ -10,6 +11,7 @@ const STORAGE_BUCKET = 'internship-documents';
 
 interface DocumentItem {
   id: string;
+  studentId: string;
   requirementTitle: string;
   requirementType: string;
   studentName: string;
@@ -23,6 +25,14 @@ interface DocumentItem {
   statusLabel: string;
 }
 
+/** All document requirements belonging to a single student — shown as one table row. */
+interface StudentDocumentGroup {
+  studentId: string;
+  studentName: string;
+  degreeProgram: string;
+  requirements: DocumentItem[];
+}
+
 @Component({
   selector: 'app-document-checklist-page',
   standalone: true,
@@ -31,10 +41,11 @@ interface DocumentItem {
 })
 export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly auditLog = inject(AuditLogService);
 
   private documentsSubscription: any = null;
 
-  documents = signal<DocumentItem[]>([]);
+  students = signal<StudentDocumentGroup[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
   isDeletingDocument = signal<string | null>(null);
@@ -51,45 +62,62 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
   searchQuery = signal('');
   statusFilter = signal<DocumentStatus | ''>('');
 
-  /** Documents filtered by the search bar + status dropdown. */
-  filteredDocuments = computed(() => {
-    const items = this.sortedDocuments();
+  // Add document requirement modal state
+  showAddDocument = signal(false);
+  addForm = signal<{ studentId: string; requirementName: string }>({
+    studentId: '',
+    requirementName: '',
+  });
+  addFile = signal<File | null>(null);
+  isAddingDocument = signal(false);
+  addErrors = signal<Record<string, string>>({});
+  addSubmitError = signal('');
+
+  /** Student profiles (role = 'student') used for the add-document student dropdown. */
+  availableStudents = signal<{
+    id: string;
+    student_id: string;
+    full_name: string;
+    degree_program: string | null;
+  }[]>([]);
+
+  /** Students grouped by student, each with their document requirements, filtered by search + status. */
+  filteredStudents = computed(() => {
+    const groups = this.sortedStudents();
     const q = (this.searchQuery() || '').toLowerCase();
     const status = this.statusFilter();
 
-    return items.filter((item) => {
-      const matchSearch =
-        !q ||
-        item.studentName.toLowerCase().includes(q) ||
-        item.requirementTitle.toLowerCase().includes(q) ||
-        (item.fileName || '').toLowerCase().includes(q);
-      const matchStatus = !status || item.status === status;
+    return groups.filter((g) => {
+      const matchSearch = !q || g.studentName.toLowerCase().includes(q);
+      const matchStatus = !status || g.requirements.some((r) => r.status === status);
       return matchSearch && matchStatus;
     });
   });
 
-  trackByDocument = (_: number, item: DocumentItem): string => item.id;
+  trackByStudent = (_: number, group: StudentDocumentGroup): string => group.studentId;
+
+  trackByRequirement = (_: number, req: DocumentItem): string => req.id;
 
   // Sort state
-  sortColumn = signal<keyof DocumentItem | ''>('');
+  sortColumn = signal<keyof StudentDocumentGroup | ''>('');
   sortDirection = signal<'asc' | 'desc' | ''>('');
 
-  sortedDocuments = computed(() => {
-    const items = this.documents();
+  sortedStudents = computed(() => {
+    const items = this.students();
     const column = this.sortColumn();
     const direction = this.sortDirection();
     if (!column || !direction) return items;
 
     return [...items].sort((a, b) => {
-      const aVal = column === 'uploadedDate' ? a.uploadedAtRaw : a[column];
-      const bVal = column === 'uploadedDate' ? b.uploadedAtRaw : b[column];
+      const aVal = a[column];
+      const bVal = b[column];
       if (aVal === bVal) return 0;
       const cmp = String(aVal).localeCompare(String(bVal));
       return direction === 'asc' ? cmp : -cmp;
     });
   });
 
-  setSort(column: keyof DocumentItem): void {
+  setSort(column: keyof StudentDocumentGroup): void {
     if (this.sortColumn() === column) {
       this.sortDirection.update((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -99,15 +127,23 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  // Document review modal state
+
+  // Document review modal state (per student)
   showDocumentModal = signal(false);
-  reviewItem = signal<DocumentItem | null>(null);
-  reviewDecision = signal<'verified' | 'rejected' | ''>('');
+  reviewStudent = signal<StudentDocumentGroup | null>(null);
   reviewNotes = signal('');
   isSavingDocument = signal(false);
 
+  /** Requirements shown in the review modal — excludes rejected ones
+   *  so a rejected file requirement drops out of admin view. */
+  reviewRequirements = computed(() => {
+    const group = this.reviewStudent();
+    return group ? group.requirements.filter((r) => r.status !== 'rejected') : [];
+  });
+
   async ngOnInit(): Promise<void> {
     await this.loadData();
+    await this.loadStudents();
     this.subscribeToUpdates();
   }
 
@@ -144,7 +180,25 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
 
       const requirements = (rows || []) as any[];
 
-      this.documents.set(requirements.map((r) => this.mapRequirement(r)));
+      // Group requirements by student so each admin table row = one student.
+      const groupMap = new Map<string, StudentDocumentGroup>();
+      requirements.forEach((r) => {
+        const key = r.student_id;
+        if (!groupMap.has(key)) {
+          groupMap.set(key, {
+            studentId: r.student_id,
+            studentName: r.student_name || '—',
+            degreeProgram: r.degree_program || '—',
+            requirements: [],
+          });
+        }
+        groupMap.get(key)!.requirements.push(this.mapRequirement(r));
+      });
+
+      const grouped = Array.from(groupMap.values()).sort((a, b) =>
+        a.studentName.localeCompare(b.studentName)
+      );
+      this.students.set(grouped);
 
       this.cdr.markForCheck();
     } catch (err) {
@@ -155,12 +209,37 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Load student profiles for the add-document student dropdown. */
+  async loadStudents(): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, student_id, full_name, degree_program')
+        .eq('role', 'student')
+        .order('full_name', { ascending: true });
+
+      if (error) throw error;
+
+      const students = (data || []) as {
+        id: string;
+        student_id: string;
+        full_name: string;
+        degree_program: string | null;
+      }[];
+      this.availableStudents.set(students);
+    } catch (err) {
+      console.error('[DocValidation] Failed to load students:', err);
+      // Non-blocking: the dropdown will simply be empty.
+    }
+  }
+
   /** Map a raw requirement row to the UI DocumentItem shape. */
   private mapRequirement(r: any): DocumentItem {
     const status = (r.status || 'pending') as DocumentStatus;
 
     return {
       id: r.id,
+      studentId: r.student_id,
       requirementTitle: r.requirement_name || '—',
       requirementType: r.requirement_name || '—',
       studentName: r.student_name || '—',
@@ -175,21 +254,22 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     };
   }
 
-  /** Open the document review modal: show file info + let admin add a comment before deciding. */
-  openDocumentModal(item: DocumentItem): void {
-    this.reviewItem.set(item);
-    this.reviewDecision.set('');
+  /** Open the document review modal for a single student, listing all their requirements. */
+  openReviewStudent(group: StudentDocumentGroup): void {
+    this.reviewStudent.set(group);
     this.reviewNotes.set('');
     this.showDocumentModal.set(true);
+    // Lock background scroll so the backdrop covers a static full screen.
+    document.body.style.overflow = 'hidden';
     this.cdr.markForCheck();
   }
 
-  /** Close the document review modal. */
-  closeDocumentModal(): void {
+  /** Close the per-student document review modal. */
+  closeReviewDocumentModal(): void {
     this.showDocumentModal.set(false);
-    this.reviewItem.set(null);
-    this.reviewDecision.set('');
+    this.reviewStudent.set(null);
     this.reviewNotes.set('');
+    document.body.style.overflow = '';
     this.cdr.markForCheck();
   }
 
@@ -237,35 +317,254 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Save the Verify / Reject decision + admin comment to Supabase and refresh the queue. */
-  async saveDocumentDecision(): Promise<void> {
-    const item = this.reviewItem();
-    const decision = this.reviewDecision();
-    if (!item || !decision) return;
+  /** Persist a single requirement's Verify / Reject decision + admin comment, then reload.
+   *  When rejecting, the file is removed from storage and file_url/file_name are cleared
+   *  so the student can resubmit a fresh file. */
+  async decideRequirement(req: DocumentItem, decision: DocumentStatus): Promise<void> {
+    const group = this.reviewStudent();
+    if (!group || this.isSavingDocument()) return;
 
     this.isSavingDocument.set(true);
 
     try {
+      const oldValues = {
+        status: req.status,
+        admin_notes: (req as any).admin_notes ?? null,
+        fileUrl: req.fileUrl,
+        fileName: req.fileName,
+      };
+
+      const updateValues: any = {
+        status: decision,
+        admin_notes: this.reviewNotes() || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      // When rejecting, remove the file from storage and clear file info so student can resubmit.
+      if (decision === 'rejected' && req.fileUrl) {
+        try {
+          const bucketMarker = `/object/public/${STORAGE_BUCKET}/`;
+          const idx = req.fileUrl.indexOf(bucketMarker);
+          if (idx !== -1) {
+            const storagePath = req.fileUrl.substring(idx + bucketMarker.length);
+            const { error: removeError } = await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
+            if (removeError) {
+              console.error('[DocValidation] Failed to delete rejected file from storage:', removeError);
+            }
+          }
+        } catch (storageErr) {
+          console.error('[DocValidation] Storage delete error on rejection:', storageErr);
+          // Non-blocking — continue with the DB update even if storage delete fails.
+        }
+        updateValues.file_url = null;
+        updateValues.file_name = null;
+      }
+
       const { error } = await supabase
         .from('student_requirements')
-        .update({
-          status: decision,
-          admin_notes: this.reviewNotes() || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', item.id);
+        .update(updateValues)
+        .eq('id', req.id);
 
       if (error) throw error;
 
-      this.closeDocumentModal();
-      this.loading.set(true);
-      await this.loadData(); // refresh queue so the status pill updates live
+      // Clear the rejected requirement from the review modal immediately
+      // so the admin doesn't need to reopen the modal or reload the page.
+      const currentGroup = this.reviewStudent();
+      if (currentGroup && decision === 'rejected') {
+        this.reviewStudent.set({
+          ...currentGroup,
+          requirements: currentGroup.requirements.filter((r) => r.id !== req.id),
+        });
+        this.cdr.markForCheck();
+      }
+
+      // Audit log the per-requirement decision (best-effort).
+      try {
+        await this.auditLog.logActivity({
+          actionType: 'update',
+          tableName: 'student_requirements',
+          recordId: req.id,
+          oldValues,
+          newValues: updateValues,
+        });
+      } catch (auditErr) {
+        console.error('[DocValidation] Audit log (update) failed:', auditErr);
+      }
+
+      await this.loadData(); // refresh so status pills update live
       this.cdr.markForCheck();
     } catch (err) {
-      console.error('[DocValidation] Save document decision failed:', err);
-      alert('Failed to save decision. Please try again.');
+      const message = err instanceof Error ? err.message : 'Failed to save decision.';
+      console.error('[DocValidation] Decide requirement failed:', message);
+      alert(`Failed to save decision: ${message}`);
     } finally {
       this.isSavingDocument.set(false);
+    }
+  }  /** Clear field-level error for the given field as the user types. */
+  clearAddFieldError(field: string): void {
+    this.addErrors.update((e) => {
+      const { [field]: _, ...rest } = e;
+      return rest;
+    });
+    this.addSubmitError.set('');
+  }
+
+  /** Clear all field-level + submit errors for the add-document modal. */
+  clearAddErrors(): void {
+    this.addErrors.set({});
+    this.addSubmitError.set('');
+  }
+
+  /** Handle student selection change in the add-document modal. */
+  onAddStudentChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.addForm.update((f) => ({ ...f, studentId: (target.value || '').trim() }));
+    this.clearAddErrors();
+  }
+
+  /** Handle requirement name input change in the add-document modal. */
+  onAddRequirementChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.addForm.update((f) => ({ ...f, requirementName: (target.value || '').trim() }));
+    this.clearAddErrors();
+  }
+
+  /** Open the add document requirement modal. */
+  openAddDocument(): void {
+    this.addForm.set({ studentId: '', requirementName: '' });
+    this.addFile.set(null);
+    this.addErrors.set({});
+    this.addSubmitError.set('');
+    this.showAddDocument.set(true);
+    // Lock background scroll so the backdrop covers a static full screen.
+    document.body.style.overflow = 'hidden';
+    this.cdr.markForCheck();
+  }
+
+  /** Close the add document requirement modal. */
+  closeAddDocument(): void {
+    this.showAddDocument.set(false);
+    this.addForm.set({ studentId: '', requirementName: '' });
+    this.addFile.set(null);
+    this.addErrors.set({});
+    this.addSubmitError.set('');
+    document.body.style.overflow = '';
+    this.cdr.markForCheck();
+  }
+
+  /** Handle file selection for the add-document modal. */
+  onAddFileSelected(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0] ?? null;
+    this.addFile.set(file);
+    this.addErrors.update((e) => {
+      const { file: _, ...rest } = e;
+      return rest;
+    });
+    this.addSubmitError.set('');
+  }
+
+  /** Save the new document requirement: upload optional file, insert row, audit log, refresh queue. */
+  async onAddDocumentSubmit(): Promise<void> {
+    this.clearAddErrors();
+
+    let valid = true;
+
+    if (!this.addForm().studentId?.trim()) {
+      this.addErrors.update((e) => ({ ...e, studentId: 'Please select a student.' }));
+      valid = false;
+    }
+
+    if (!this.addForm().requirementName?.trim()) {
+      this.addErrors.update((e) => ({ ...e, requirementName: 'Requirement name is required.' }));
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    this.isAddingDocument.set(true);
+
+    try {
+      // Resolve the selected student's name and degree program (stored directly on the row
+      // to avoid joining profiles, which triggers RLS recursion in this codebase).
+      let studentName = '—';
+      let degreeProgram = (null as unknown) as string | null;
+
+      const student = this.availableStudents().find((s) => s.student_id === this.addForm().studentId);
+      if (student) {
+        studentName = student.full_name;
+        degreeProgram = student.degree_program ?? null;
+      }
+
+      // Optional: upload file to the internship-documents storage bucket.
+      let fileUrl: string | null = null;
+      let fileName: string | null = null;
+
+      if (this.addFile()) {
+        const file = this.addFile()!;
+        const safeName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+        const storagePath = `document_requirements/${safeName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('internship-documents')
+          .upload(storagePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: pubData } = supabase.storage
+          .from('internship-documents')
+          .getPublicUrl(storagePath);
+
+        fileUrl = pubData?.publicUrl ?? null;
+        fileName = file.name;
+      }
+
+      const { error: insertError } = await supabase
+        .from('student_requirements')
+        .insert({
+          student_id: this.addForm().studentId.trim(),
+          student_name: studentName,
+          degree_program: degreeProgram,
+          requirement_name: this.addForm().requirementName.trim(),
+          file_name: fileName,
+          file_url: fileUrl,
+          status: 'pending',
+          updated_at: new Date().toISOString(),
+        });
+
+      if (insertError) throw insertError;
+
+      // Audit log the create action (best-effort; never blocks the UI).
+      try {
+        const insertedId = 'new-requirement'; // best-effort only; record_id is informational
+        await this.auditLog.logActivity({
+          actionType: 'create',
+          tableName: 'student_requirements',
+          recordId: insertedId,
+          oldValues: null,
+          newValues: {
+            student_id: this.addForm().studentId.trim(),
+            student_name: studentName,
+            degree_program: degreeProgram,
+            requirement_name: this.addForm().requirementName.trim(),
+            file_name: fileName,
+            file_url: fileUrl,
+            status: 'pending',
+          },
+        });
+      } catch (auditErr) {
+        console.error('[DocValidation] Audit log (create) failed:', auditErr);
+      }
+
+      this.closeAddDocument();
+      await this.loadData(); // refresh queue so the new requirement appears
+      this.cdr.markForCheck();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add document requirement.';
+      console.error('[DocValidation] Add document requirement failed:', message);
+      this.addSubmitError.set(message);
+    } finally {
+      this.isAddingDocument.set(false);
     }
   }
 

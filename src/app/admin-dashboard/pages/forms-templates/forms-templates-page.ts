@@ -90,71 +90,72 @@ const CATEGORY_CONFIG: Record<Category, { label: string; color: 'blue' | 'amber'
         </div>
       </section>
 
-      <!-- Filter Bar + Table -->
-      <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h3 class="text-base font-bold text-slate-900">Template Library</h3>
-
+      <!-- Filter Toolbar -->
+      <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden mb-6">
+        <div class="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-center">
             <!-- Search -->
             <div class="relative min-w-0 w-full sm:w-64">
-              <label class="sr-only">Search forms</label>
-              <input
-                type="search"
-                [ngModel]="searchQuery()"
-                (ngModelChange)="searchQuery.set($event)"
-                placeholder="Search title or description…"
-                class="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl pl-3 pr-10 py-2 text-sm focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors"
-              />
-              <svg
-                class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path d="m21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0Z" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </div>
+            <label class="sr-only">Search forms</label>
+            <input
+              type="search"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              placeholder="Search title or description…"
+              class="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl pl-3 pr-10 py-2 text-sm focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors"
+            />
+            <svg
+              class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="m21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0Z" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
 
-            <!-- Category filter -->
-            <div class="relative min-w-0 w-full sm:w-48">
-              <label class="sr-only">Category filter</label>
-              <select
-                [ngModel]="categoryFilter()"
-                (ngModelChange)="categoryFilter.set($event)"
-                class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pr-10 pl-3 py-2 text-sm appearance-none focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors cursor-pointer"
-              >
-                <option value="">All Categories</option>
-                <option *ngFor="let cat of allCategories" [value]="cat">{{ categoryLabel(cat) }}</option>
-              </select>
-              <svg
-                class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </div>
+          <!-- Category filter -->
+          <div class="relative min-w-0 w-full sm:w-48">
+            <label class="sr-only">Category filter</label>
+            <select
+              [ngModel]="categoryFilter()"
+              (ngModelChange)="categoryFilter.set($event)"
+              class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pr-10 pl-3 py-2 text-sm appearance-none focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors cursor-pointer"
+            >
+              <option value="">All Categories</option>
+              <option *ngFor="let cat of allCategories" [value]="cat">{{ categoryLabel(cat) }}</option>
+            </select>
+            <svg
+              class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
           </div>
         </div>
+      </div>
+      </section>
 
+      <!-- Table Card -->
+      <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden rounded-xl">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
-            <thead class="bg-slate-50 border-b border-slate-200/80">
+            <thead class="bg-[#1C3A63] border-b border-[#1C3A63]">
               <tr>
-                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-slate-500">Title</th>
-                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-slate-500">Description</th>
-                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-slate-500">Category</th>
-                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-slate-500">Type</th>
-                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-slate-500">File Type</th>
-                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-slate-500">Version</th>
-                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-slate-500">Status</th>
-                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-slate-500 text-right">Actions</th>
+                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white">Title</th>
+                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white">Description</th>
+                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white">Category</th>
+                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white">Type</th>
+                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white">File Type</th>
+                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white">Version</th>
+                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white">Status</th>
+                <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white text-right">Actions</th>
               </tr>
             </thead>
 

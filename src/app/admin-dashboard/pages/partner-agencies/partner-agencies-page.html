@@ -8,36 +8,59 @@
       <p class="text-sm text-slate-200 mt-1 max-w-xl">
         Manage local, national, and international HTE partners supporting student internship placements. Data is sourced live from the <code class="text-amber-300">companies</code> table.
       </p>
-
-      <!-- Stat Boxes Row -->
-      <div class="flex flex-wrap gap-4 mt-4">
-        <div class="bg-white/10 border border-white/15 rounded-2xl px-5 py-3.5 flex flex-col min-w-[180px] w-auto md:min-w-[200px]">
-          <span class="text-2xl font-bold text-white">{{ totalCount }}</span>
-          <span class="text-xs font-semibold text-amber-400 tracking-wider mt-1">Total Agencies</span>
-        </div>
-        <div class="bg-white/10 border border-white/15 rounded-2xl px-5 py-3.5 flex flex-col min-w-[180px] w-auto md:min-w-[200px]">
-          <span class="text-2xl font-bold text-white text-emerald-400">{{ activeCount }}</span>
-          <span class="text-xs font-semibold text-emerald-400 tracking-wider mt-1">Active Partners</span>
-        </div>
-        <div class="bg-white/10 border border-white/15 rounded-2xl px-5 py-3.5 flex flex-col min-w-[180px] w-auto md:min-w-[200px]">
-          <span class="text-2xl font-bold text-white text-blue-400">{{ totalSlots }}</span>
-          <span class="text-xs font-semibold text-blue-400 tracking-wider mt-1">Total Application Slots</span>
-        </div>
-        <div class="bg-white/10 border border-white/15 rounded-2xl px-5 py-3.5 flex flex-col min-w-[180px] w-auto md:min-w-[200px]">
-          <span class="text-2xl font-bold text-white text-rose-400">{{ filledSlots }}</span>
-          <span class="text-xs font-semibold text-rose-400 tracking-wider mt-1">Students Applied</span>
-        </div>
-      </div>
     </div>
 
-    <!-- Right Side: Add Agency button only -->
+    <!-- Right Side: Add Agency + Manage Countries buttons -->
     <div class="flex gap-3">
-      <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-[0_4px_6px_-1px_rgba(59,130,246,0.3)] flex items-center gap-2 whitespace-nowrap transition-all duration-200 hover:shadow-[0_6px_8px_-1px_rgba(59,130,246,0.4)] hover:-translate-y-[1px]" (click)="openAddForm()">
+      <button type="button" class="flex items-center gap-2 bg-white text-[#1E3A5F] hover:bg-slate-100 font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition-all" (click)="openCountryModal()">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+        Manage Countries
+      </button>
+      <button type="button" class="flex items-center gap-2 bg-white text-[#1E3A5F] hover:bg-slate-100 font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition-all" (click)="openAddForm()">
         <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         Add Agency
       </button>
     </div>
   </div>
+
+  <!-- Stat Cards -->
+  <section class="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 px-8 py-3">
+    <article class="border border-slate-200 rounded-xl bg-white p-4 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
+      <div class="flex items-start gap-3">
+        <div>
+          <p class="text-[0.625rem] font-extrabold tracking-tighter uppercase text-[#1E3A5F]">Total Agencies</p>
+          <h2 class="mt-2 text-xl leading-1 font-extrabold tracking-tight text-slate-900">{{ totalCount }}</h2>
+        </div>
+              </div>
+    </article>
+
+    <article class="border border-slate-200 rounded-xl bg-white p-4 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
+      <div class="flex items-start gap-3">
+        <div>
+          <p class="text-[0.625rem] font-extrabold tracking-tighter uppercase text-[#1E3A5F]">Active Partners</p>
+          <h2 class="mt-2 text-xl leading-1 font-extrabold tracking-tight text-slate-900">{{ activeCount }}</h2>
+        </div>
+              </div>
+    </article>
+
+    <article class="border border-slate-200 rounded-xl bg-white p-4 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
+      <div class="flex items-start gap-3">
+        <div>
+          <p class="text-[0.625rem] font-extrabold tracking-tighter uppercase text-[#1E3A5F]">Total Application Slots</p>
+          <h2 class="mt-2 text-xl leading-1 font-extrabold tracking-tight text-slate-900">{{ totalSlots }}</h2>
+        </div>
+              </div>
+    </article>
+
+    <article class="border border-slate-200 rounded-xl bg-white p-4 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:border-blue-200/60">
+      <div class="flex items-start gap-3">
+        <div>
+          <p class="text-[0.625rem] font-extrabold tracking-tighter uppercase text-[#1E3A5F]">Students Applied</p>
+          <h2 class="mt-2 text-xl leading-1 font-extrabold tracking-tight text-slate-900">{{ filledSlots }}</h2>
+        </div>
+              </div>
+    </article>
+  </section>
 
   <!-- Loading State -->
   <div *ngIf="loading()" class="w-full px-8 py-20 flex justify-center">
@@ -59,20 +82,11 @@
   </div>
 
   <!-- Filters / Search -->
-  <section *ngIf="!loading() && !error()" class="w-full px-8 py-4 space-y-4">
-    <!-- Manage Countries button -->
-    <div class="flex items-center gap-4">
-      <button type="button" (click)="openCountryModal()" class="flex items-center gap-3 px-5 py-3 rounded-xl bg-[#1E3A5F] text-white text-sm font-semibold shadow-[0_4px_6px_-1px_rgba(30,58,95,0.3)] hover:bg-blue-700 hover:shadow-[0_6px_8px_-1px_rgba(30,58,95,0.4)] transition-all duration-200 hover:-translate-y-[1px]">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-        Manage Countries
-      </button>
-      <div *ngIf="countryMgmtError()" class="text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-md border border-rose-100">
-        {{ countryMgmtError() }}
-      </div>
-    </div>
-
-    <!-- Filter group: Category only -->
-    <div class="flex flex-wrap items-center gap-3" role="group" aria-label="Agency filters">
+  <section *ngIf="!loading() && !error()" class="w-full px-8 py-4">
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden mb-6">
+      <div class="px-6 py-4 space-y-4">
+        <!-- Filter group: Category only -->
+        <div class="flex flex-wrap items-center gap-3" role="group" aria-label="Agency filters">
       <div class="flex flex-wrap items-center gap-3" role="tablist" aria-label="Agency category">
         <button
           type="button"
@@ -106,18 +120,14 @@
           <option *ngFor="let c of managedCountries()" [value]="c.name">{{ c.name }}</option>
         </select>
       </div>
-
-      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1E3A5F]/5 border border-[#1E3A5F]/10 ml-auto">
-        <span class="text-xs font-medium text-slate-600">
-          <strong class="text-[#1E3A5F] font-semibold">{{ filteredAgencies.length }}</strong> agencies
-        </span>
-      </div>
     </div>
 
     <div *ngIf="filteredAgencies.length === 0" class="text-center py-16">
       <svg viewBox="0 0 24 24" class="w-12 h-12 text-slate-400 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 21V7l8-4 8 4v14H4Z" stroke-linejoin="round"/><path d="M12 3v18" stroke-linecap="round"/></svg>
       <h2 class="text-lg font-bold text-slate-900 mb-2">No agencies found</h2>
       <p class="text-slate-500 text-sm">There are no agencies in this category yet.</p>
+    </div>
+      </div>
     </div>
   </section>
 
@@ -127,14 +137,14 @@
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50 border-b border-slate-200">
-              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Agency</th>
-              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Category</th>
-              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</th>
-              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
-              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Slots</th>
-              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">Applicants</th>
-              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
+            <tr class="bg-[#1C3A63] border-b border-[#1C3A63]">
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Agency</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Category</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Location</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Status</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Slots</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Applicants</th>
+              <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -181,7 +191,7 @@
                   View Applicants
                 </button>
               </td>
-              <td class="px-6 py-4 text-right">
+              <td class="px-6 py-4">
                 <button type="button" class="ml-2 px-3 py-1.5 rounded-md bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors" (click)="deleteAgency(agency)">
                   Delete
                 </button>
@@ -354,7 +364,7 @@
         <ng-template #emptyCountries>
           <div class="flex flex-col items-center justify-center py-12 text-center">
             <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v14m-6 0h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v14m-6 0h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <h3 class="text-sm font-bold text-slate-900 mb-1">No countries yet</h3>
             <p class="text-xs text-slate-500 mb-4">Add your first country to use it in agency assignments.</p>
