@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { supabase } from '../../../../environments/supabase.config';
 import { ProfileService } from '../../../auth/profile.service';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 export interface InternshipPosting {
   id: string; // uuid
@@ -70,7 +71,7 @@ function industryToDegreeTags(industry: string | null): string[] {
 @Component({
   selector: 'app-internship-postings-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   templateUrl: './internship-postings-page.component.html',
   styleUrl: './internship-postings-page.component.css',
 })
@@ -100,6 +101,8 @@ export class InternshipPostingsPageComponent implements OnInit {
   selectedPost: InternshipPosting | null = null;
   modalOpen = false;
   applying = signal(false);
+  confirmApplyOpen = false;
+  postToApply: InternshipPosting | null = null;
   loading = signal(true);
   loadError = signal<string | null>(null);
 
@@ -365,13 +368,19 @@ export class InternshipPostingsPageComponent implements OnInit {
       });
   }
 
-  async applyToPosting(post: InternshipPosting) {
-    if (!post || this.applying()) return;
+  /** Open the apply-confirm dialog for the given posting. */
+  openApplyConfirm(post: InternshipPosting): void {
+    if (this.applying()) return;
+    if (!post || post.slots <= 0) return;
+    this.postToApply = post;
+    this.confirmApplyOpen = true;
+  }
 
-    if (post.slots <= 0) {
-      alert(`No available slots for ${post.companyName}.`);
-      return;
-    }
+  /** Confirmed from the dialog — submit the application. */
+  async applyConfirmed(): Promise<void> {
+    const post = this.postToApply;
+    this.closeApplyConfirm();
+    if (!post) return;
 
     this.applying.set(true);
 
@@ -482,5 +491,11 @@ export class InternshipPostingsPageComponent implements OnInit {
       });
       alert(`Application failed: ${err?.message || err?.details || err}. Check console for details.`);
     }
+  }
+
+  /** Close the apply-confirm dialog without applying. */
+  closeApplyConfirm(): void {
+    this.confirmApplyOpen = false;
+    this.postToApply = null;
   }
 }
