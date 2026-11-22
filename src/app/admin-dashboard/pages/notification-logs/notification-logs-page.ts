@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { supabase } from '../../../../environments/supabase.config';
 
 interface AdminNotification {
@@ -9,6 +10,7 @@ interface AdminNotification {
   timeAgo: string;
   type: 'application' | 'requirement' | 'admin-action';
   status?: string;
+  link?: string;
 }
 
 /** Friendly label for a monitored table. */
@@ -164,6 +166,7 @@ function timeAgo(iso: string | null): string {
 
         <div class="divide-y divide-slate-100" *ngIf="notifications().length > 0; else emptyState">
           <button *ngFor="let n of notifications(); trackBy: trackByNotification"
+            (click)="goToNotification(n)"
             class="w-full px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50/50 last:border-0"
           >
             <div class="flex-col gap-0.5">
@@ -209,6 +212,7 @@ function timeAgo(iso: string | null): string {
 })
 export class NotificationLogsPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly router = inject(Router);
   private logsSubscription: any = null;
   private auditLogsSubscription: any = null;
 
@@ -267,6 +271,7 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
             timeAgo: timeAgo(a.submitted_at),
             type: 'application',
             status: a.status || '—',
+            link: '/admin-dashboard/student-applicants',
           },
           date: appDate,
         });
@@ -282,6 +287,7 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
             timeAgo: timeAgo(r.updated_at),
             type: 'requirement',
             status: r.status || '—',
+            link: '/admin-dashboard/document-checklist',
           },
           date: reqDate,
         });
@@ -297,6 +303,7 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
             timeAgo: timeAgo(log.performed_at),
             type: 'admin-action',
             status: log.action_type,
+            link: '/admin-dashboard/audit-logs',
           },
           date: logDate,
         });
@@ -311,6 +318,12 @@ export class NotificationLogsPageComponent implements OnInit, OnDestroy {
       this.loading.set(false);
       this.cdr.markForCheck();
     }
+  }
+
+  /** Navigate to the relevant page when a notification item is clicked. */
+  goToNotification(n: AdminNotification): void {
+    if (!n.link) return;
+    this.router.navigateByUrl(n.link);
   }
 
   /** Computed stats for the stat bar. */
