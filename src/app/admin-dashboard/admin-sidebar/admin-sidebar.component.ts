@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 interface SidebarItem {
@@ -29,6 +29,12 @@ export class AdminSidebarComponent {
     { label: 'Account Manage', route: '/admin-dashboard/accounts-management', icon: 'users' },
     { label: 'Account Settings', route: '/admin-dashboard/account-settings', icon: 'admin-panel-settings' },
   ];
+
+  /** Passed from the shell: true below the md breakpoint. */
+  readonly isMobile = input.required<boolean>();
+
+  /** Passed from the shell: whether the mobile overlay is open. */
+  readonly isSidebarOpen = input.required<boolean>();
 
   trackBySidebar = (_: number, item: SidebarItem): string => item.label;
 }

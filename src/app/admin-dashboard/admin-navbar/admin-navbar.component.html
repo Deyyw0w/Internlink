@@ -38,10 +38,10 @@
        </svg>
      </button>
 
-      <!-- Dropdown -->
+      <!-- Dropdown (overflow-safe on mobile) -->
       <div *ngIf="isProfileMenuOpen"
            role="menu"
-           class="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-white/20 bg-[#1E3A5F]/95 shadow-lg backdrop-blur-sm text-white">
+           class="absolute z-50 mt-2 w-full max-w-xs md:w-72 overflow-hidden rounded-xl border border-white/20 bg-[#1E3A5F]/95 shadow-lg backdrop-blur-sm text-white mx-auto md:mx-0 right-0 md:right-0 left-0 md:left-auto">
 
         <!-- User info -->
         <div class="px-4 pb-3 pt-4">

@@ -104,10 +104,10 @@ function auditBody(row: any): string {
               class="absolute right-1 top-1 z-20 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#1E3A5F]"></span>
       </button>
 
-      <!-- Dropdown panel -->
+      <!-- Dropdown panel (overflow-safe on mobile) -->
       <div *ngIf="isOpen"
            role="menu"
-           class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-white/20 bg-[#1E3A5F]/95 shadow-lg backdrop-blur-sm text-white">
+           class="absolute z-50 mt-2 w-full max-w-xs md:w-80 overflow-hidden rounded-xl border border-white/20 bg-[#1E3A5F]/95 shadow-lg backdrop-blur-sm text-white mx-auto md:mx-0 right-0 md:right-0 left-0 md:left-auto">
 
         <!-- Header -->
         <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
