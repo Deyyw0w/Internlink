@@ -199,6 +199,7 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     this.error.set(null);
 
     try {
+      // Fetch requirements for all students.
       const { data: rows, error } = await supabase
         .from('student_requirements')
         .select(`
@@ -208,9 +209,7 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
           file_name,
           file_url,
           status,
-          updated_at,
-          student_name,
-          degree_program
+          updated_at
         `)
         .order('updated_at', { ascending: false });
 
@@ -218,15 +217,32 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
 
       const requirements = (rows || []) as any[];
 
+      // Fetch student names / degree programs from internship_applications so
+      // the admin queue can display them (avoids the profiles self-join RLS recursion).
+      const studentIds = [...new Set(requirements.map((r) => r.student_id).filter(Boolean))];
+      const appMap = new Map<string, { student_name?: string | null; degree_program?: string | null }>();
+      if (studentIds.length > 0) {
+        const { data: apps } = await supabase
+          .from('internship_applications')
+          .select('student_id, student_name, degree_program')
+          .in('student_id', studentIds);
+        (apps || []).forEach((a: any) => {
+          const key = a.student_id;
+          // Keep the latest application row per student.
+          if (!appMap.has(key)) appMap.set(key, { student_name: a.student_name, degree_program: a.degree_program });
+        });
+      }
+
       // Group requirements by student so each admin table row = one student.
       const groupMap = new Map<string, StudentDocumentGroup>();
       requirements.forEach((r) => {
         const key = r.student_id;
+        const app = appMap.get(key);
         if (!groupMap.has(key)) {
           groupMap.set(key, {
             studentId: r.student_id,
-            studentName: r.student_name || '—',
-            degreeProgram: r.degree_program || '—',
+            studentName: app?.student_name || '—',
+            degreeProgram: app?.degree_program || '—',
             requirements: [],
           });
         }
