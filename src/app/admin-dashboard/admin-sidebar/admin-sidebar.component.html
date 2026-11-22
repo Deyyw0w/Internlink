@@ -1,8 +1,7 @@
 <aside
-  class="w-full md:w-72 fixed left-0 top-0 z-30 h-full flex-shrink-0 overflow-y-auto no-scrollbar bg-[#1E3A5F] text-white flex flex-col"
-  [class.translate-x-full]="isMobile() && !isSidebarOpen()"
+  class="w-full md:w-72 fixed left-0 top-0 z-30 h-full flex-shrink-0 overflow-y-auto no-scrollbar bg-[#1E3A5F] text-white flex flex-col z-[50]"
+  [class.-translate-x-full]="isMobile() && !isSidebarOpen()"
   [class.translate-x-0]="isMobile() && isSidebarOpen()"
-  [class.z-50]="isMobile()"
 >
   <div class="h-20 flex items-center border-b border-white/15 px-6">
     <div class="flex items-center gap-4">

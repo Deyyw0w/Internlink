@@ -236,3 +236,14 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Desktop (>=768px): never slide the sidebar off-screen */
+@media (min-width: 768px) {
+  :host {
+    transform: none !important;
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    width: 18rem !important; /* md:w-72 */
+  }
+}
