@@ -30,7 +30,7 @@ function timeAgo(iso: string | null): string {
   return `${months} month${months > 1 ? 's' : ''} ago`;
 }
 
-/** Friendly label for a monitored admin table. */
+/** Friendly label for a monitored table. */
 function tableLabel(tableName: string): string {
   const map: Record<string, string> = {
     contract_categories: 'Contract Category',
@@ -51,24 +51,46 @@ function actionWord(actionType: string): string {
     case 'update':
       return 'Updated';
     case 'delete':
-      return 'Deleted';
+      return 'Removed';
     default:
       return actionType;
   }
 }
 
-/** Build a readable body line describing what changed on an admin audit record. */
+/** Friendly column names for audit-log changes (plain language). */
+function friendlyColumn(key: string): string {
+  const map: Record<string, string> = {
+    id: 'record ID',
+    reference_number: 'application number',
+    student_id: 'student',
+    host_company: 'company',
+    position_role: 'position',
+    status: 'status',
+    requirement_name: 'document',
+    file_name: 'file',
+    file_url: 'document link',
+    name: 'name',
+    title: 'title',
+    description: 'description',
+    performed_by: 'admin user',
+    updated_at: 'updated at',
+    submitted_at: 'submitted at',
+  };
+  return map[key] || key;
+}
+
+/** Build a plain-language body line describing what changed on a record. */
 function auditBody(row: any): string {
   const label = tableLabel(row.table_name);
   const newVals = (row.new_values || {}) as any;
   const oldVals = (row.old_values || {}) as any;
-  const name = newVals.name || newVals.title || oldVals.name || oldVals.title || row.record_id || '—';
+  const name = newVals.name || newVals.title || oldVals.name || oldVals.title || 'this record';
 
   if (row.action_type === 'create') {
     return `New ${label} “${name}” was added.`;
   }
   if (row.action_type === 'delete') {
-    return `${label} “${name}” was deleted.`;
+    return `${label} “${name}” was removed.`;
   }
   const changed: string[] = [];
   const allKeys = new Set([...Object.keys(oldVals || {}), ...Object.keys(newVals || {})]);
@@ -77,7 +99,7 @@ function auditBody(row: any): string {
     const newV = newVals[k];
     if (String(oldV) !== String(newV)) changed.push(k);
   });
-  const detail = changed.length > 0 ? ` (${changed.join(', ')})` : '';
+  const detail = changed.length > 0 ? ` — ${changed.map(friendlyColumn).join(', ')} changed` : '';
   return `${label} “${name}” was updated${detail}.`;
 }
 
