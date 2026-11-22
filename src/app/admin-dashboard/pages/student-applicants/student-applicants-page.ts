@@ -307,6 +307,16 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
         const { error } = await supabase.from('internship_applications').delete().eq('id', applicant.id);
         if (error) throw error;
 
+        // Clean up this student's document requirements so the document counter
+        // doesn't keep cumulative rows from removed applications (e.g. 8 instead of 4).
+        const { error: reqError } = await supabase
+          .from('student_requirements')
+          .delete()
+          .eq('student_id', applicant.studentId);
+        if (reqError) {
+          console.error('[StudentApplicants] Failed to cleanup student requirements on delete:', reqError);
+        }
+
         await this.auditLog.logActivity({
           actionType: 'delete',
           tableName: 'internship_applications',
