@@ -114,7 +114,18 @@ export interface AppHistoryEntry {
                   <p class="text-sm font-semibold text-slate-800">{{ doc.requirement_name }}</p>
                   <p class="text-xs text-slate-500">{{ doc.file_name || 'No file uploaded' }} • {{ doc.status | titlecase }}</p>
                 </div>
-                <span [ngClass]="getStatusBadge(doc.status)" class="px-2.5 py-1 rounded-full text-[10px] font-bold">{{ doc.status | uppercase }}</span>
+                <div class="flex items-center gap-2">
+                  <span [ngClass]="getStatusBadge(doc.status)" class="px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap">{{ doc.status | uppercase }}</span>
+                  <button
+                    *ngIf="doc.status === 'rejected'"
+                    type="button"
+                    (click)="openReupload(doc)"
+                    [disabled]="reuploading()"
+                    class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    Re-upload
+                  </button>
+                </div>
               </div>
             </div>
             <ng-template #noRequirements>
@@ -178,6 +189,19 @@ export interface AppHistoryEntry {
       (cancel)="handleConfirmCancel()"
     ></app-confirm-dialog>
 
+    <!-- Re-upload rejected document dialog -->
+    <app-confirm-dialog
+      [open]="reuploadDialogOpen()"
+      [title]="reuploadTitle()"
+      [message]="'You are about to re-upload the document <strong>' + (reuploadPayload()?.requirement.requirement_name || 'this document') + '</strong>. The new file will be sent to the admin for review.'"
+      [confirmLabel]="reuploadLabel()"
+      [cancelLabel]="'Cancel'"
+      [loading]="reuploading()"
+      [loadingLabel]="'Uploading…'"
+      (confirm)="reuploadConfirmed()"
+      (cancel)="closeReuploadDialog()"
+    ></app-confirm-dialog>
+
     </main>
   `,
 })
@@ -206,6 +230,14 @@ export class MyApplicationPageComponent implements OnInit, OnDestroy {
   confirmTitle = signal('');
   confirmMessage = signal('');
   confirmLabel = signal('Request Removal');
+
+  // Re-upload confirm dialog state (rejected document re-submission).
+  reuploadDialogOpen = signal(false);
+  reuploadPayload = signal<{ requirement: AppRequirement } | null>(null);
+  reuploading = signal(false);
+
+  reuploadTitle = signal('Re-upload Document?');
+  reuploadLabel = signal('Re-upload');
 
   // In-app notification shown when the admin approves/dismisses a removal request.
   notification = signal<{ type: 'success' | 'info' | 'warn'; message: string } | null>(null);
@@ -420,6 +452,115 @@ export class MyApplicationPageComponent implements OnInit, OnDestroy {
     this.confirmPayload.set(null);
     this.confirmIsDeleting.set(false);
     this.cdr.markForCheck();
+  }
+
+  /** Open the re-upload dialog for a rejected document requirement. */
+  openReupload(requirement: AppRequirement): void {
+    if (this.reuploading()) return;
+    this.reuploadPayload.set({ requirement });
+    this.reuploadDialogOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  /** Close the re-upload dialog without re-uploading. */
+  closeReuploadDialog(): void {
+    this.reuploadDialogOpen.set(false);
+    this.reuploadPayload.set(null);
+    this.cdr.markForCheck();
+  }
+
+  /** Re-upload the file for a rejected requirement. */
+  async reuploadConfirmed(): Promise<void> {
+    const requirement = this.reuploadPayload()?.requirement;
+    if (!requirement) return;
+    this.closeReuploadDialog();
+    this.reuploading.set(true);
+
+    // Use the browser file input to pick a file. We create a hidden input,
+    // wait for the user to pick a file, then upload it.
+    try {
+      const file = await this.pickFile();
+      if (!file) {
+        this.reuploading.set(false);
+        return;
+      }
+
+      const profile = this.profileService.profile();
+      const studentId = profile?.student_id;
+      if (!studentId) {
+        alert('Unable to identify your account. Please log in again.');
+        this.reuploading.set(false);
+        return;
+      }
+
+      const MAX_BYTES = 20 * 1024 * 1024;
+      if (file.size > MAX_BYTES) {
+        alert(`File "${file.name}" is too large. Please keep uploads under 20 MB.`);
+        this.reuploading.set(false);
+        return;
+      }
+
+      const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+      const storagePath = `${studentId}/${fileName}`;
+
+      // 1. Upload to storage
+      const { error: uploadError } = await supabase
+        .storage
+        .from('internship-documents')
+        .upload(storagePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      // 2. Get public URL
+      const { data: urlData } = await supabase
+        .storage
+        .from('internship-documents')
+        .getPublicUrl(storagePath);
+      const publicUrl = urlData?.publicUrl || null;
+
+      // 3. Update requirement row with new file and reset status to pending
+      const { error: updateError } = await supabase
+        .from('student_requirements')
+        .update({
+          file_name: file.name,
+          file_url: publicUrl,
+          status: 'pending',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requirement.id);
+
+      if (updateError) throw updateError;
+
+      // 4. Patch local signal so UI updates immediately + rebuild history
+      this.requirements.update(items =>
+        items.map(r =>
+          r.id === requirement.id
+            ? { ...r, file_name: file.name, file_url: publicUrl, status: 'pending', updated_at: new Date().toISOString() }
+            : r
+        )
+      );
+      this.buildHistory();
+      this.cdr.markForCheck();
+
+      this.reuploading.set(false);
+      alert(`Your ${requirement.requirement_name} has been re-uploaded. It is pending admin review.`);
+
+    } catch (err: any) {
+      this.reuploading.set(false);
+      console.error('[MyApplication] Re-upload failed:', err);
+      alert(`Re-upload failed: ${err?.message || err}. Check console for details.`);
+    }
+  }
+
+  /** Open a hidden file input and resolve with the chosen file (or null). */
+  private pickFile(): Promise<File | null> {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+      input.onchange = () => resolve(input.files?.[0] ?? null);
+      input.oncancel = () => resolve(null);
+      input.click();
+    });
   }
 
   /** Subscribe to real-time updates so the page reflects admin changes instantly. */
