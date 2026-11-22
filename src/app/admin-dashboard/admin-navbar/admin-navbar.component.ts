@@ -28,9 +28,12 @@ export class AdminNavbarComponent implements OnInit, OnDestroy {
   });
 
   async ngOnInit(): Promise<void> {
-    // Load profile if this page hasn't already (e.g. refresh on a child route).
+    // Load profile for the current session user. Skip only when the cached
+    // profile already belongs to this user (prevents admin/student profile
+    // leaking across role switches on the shared ProfileService singleton).
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user && !this.profileService.profile()) {
+    const current = this.profileService.profile();
+    if (session?.user && (!current || current.id !== session.user.id)) {
       await this.profileService.loadProfile(session.user.id);
     }
 
