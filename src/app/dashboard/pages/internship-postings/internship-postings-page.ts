@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { supabase } from '../../../../environments/supabase.config';
 import { ProfileService } from '../../../auth/profile.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -71,7 +71,7 @@ function industryToDegreeTags(industry: string | null): string[] {
 @Component({
   selector: 'app-internship-postings-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, RouterLink],
   templateUrl: './internship-postings-page.component.html',
   styleUrl: './internship-postings-page.component.css',
 })
@@ -103,6 +103,11 @@ export class InternshipPostingsPageComponent implements OnInit {
   applying = signal(false);
   confirmApplyOpen = false;
   postToApply: InternshipPosting | null = null;
+
+  /** Result shown in a modal after a successful application (replaces alert()). */
+  applyResultOpen = false;
+  applyResultRef = '';
+  applyResultCompany = '';
   loading = signal(true);
   loadError = signal<string | null>(null);
 
@@ -476,7 +481,10 @@ export class InternshipPostingsPageComponent implements OnInit {
       this.closeDetails();
       this.cdr.markForCheck();
 
-      alert(`Application submitted! Reference: ${referenceNumber}\nRequirements ready to upload.`);
+      // Show result modal instead of a browser alert.
+      this.applyResultRef = referenceNumber;
+      this.applyResultCompany = post.companyName;
+      this.applyResultOpen = true;
 
       void this.router.navigate(['/dashboard/document-checklist']);
     } catch (err: any) {
