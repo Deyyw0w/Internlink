@@ -225,7 +225,7 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Subscribe to real-time requirement status changes so verification/rejection reflects live. */
+  /** Subscribe to real-time changes so verification/rejection and removal reflect live. */
   private subscribeToUpdates(): void {
     const profile = this.profileService.profile();
     const studentId = profile?.student_id;
@@ -245,8 +245,33 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'student_requirements' },
+        async (payload) => {
+          const deleted = payload.old as any;
+          if (deleted?.student_id === studentIdText) {
+            void this.loadData();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'internship_applications' },
+        async (payload) => {
+          const newApp = payload.new as any;
+          const oldApp = payload.old as any;
+          // Application deleted (admin approved removal) or status changed to removal-requested
+          if (
+            (!newApp && oldApp?.student_id === studentIdText) ||
+            (newApp?.student_id === studentIdText && newApp.status === 'removal-requested')
+          ) {
+            void this.loadData();
+          }
+        }
+      )
       .subscribe((status) => {
-        console.log('[DocumentChecklist] Realtime channel (student_requirements) status:', status);
+        console.log('[DocumentChecklist] Realtime channel status:', status);
       });
   }
 
