@@ -235,7 +235,10 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
         });
       }
 
-      // Filter out students whose application is removal-requested.
+      // Filter out students whose application is removal-requested, and also
+      // filter out orphaned requirement rows whose internship_applications row
+      // no longer exists (e.g. standalone delete removed the application but
+      // left requirement rows behind).
       const removalRequestedIds = new Set(
         [...appMap.entries()].filter(([, app]) => app.status === 'removal-requested').map(([sid]) => sid)
       );
@@ -244,9 +247,14 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
       const groupMap = new Map<string, StudentDocumentGroup>();
       requirements.forEach((r) => {
         const key = r.student_id;
+        const app = appMap.get(key);
+
         // Skip students whose application is removal-requested — they are being removed.
         if (removalRequestedIds.has(key)) return;
-        const app = appMap.get(key);
+
+        // Skip orphaned requirements (application row was standalone-deleted).
+        if (!app) return;
+
         if (!groupMap.has(key)) {
           groupMap.set(key, {
             studentId: r.student_id,
