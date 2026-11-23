@@ -219,24 +219,33 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
 
       // Fetch student names / degree programs from internship_applications so
       // the admin queue can display them (avoids the profiles self-join RLS recursion).
+      // Also exclude students whose application is removal-requested — they are
+      // being removed and shouldn't appear in the validation queue.
       const studentIds = [...new Set(requirements.map((r) => r.student_id).filter(Boolean))];
-      const appMap = new Map<string, { student_name?: string | null; degree_program?: string | null }>();
+      const appMap = new Map<string, { student_name?: string | null; degree_program?: string | null; status?: string | null }>();
       if (studentIds.length > 0) {
         const { data: apps } = await supabase
           .from('internship_applications')
-          .select('student_id, student_name, degree_program')
+          .select('student_id, student_name, degree_program, status')
           .in('student_id', studentIds);
         (apps || []).forEach((a: any) => {
           const key = a.student_id;
           // Keep the latest application row per student.
-          if (!appMap.has(key)) appMap.set(key, { student_name: a.student_name, degree_program: a.degree_program });
+          if (!appMap.has(key)) appMap.set(key, { student_name: a.student_name, degree_program: a.degree_program, status: a.status });
         });
       }
+
+      // Filter out students whose application is removal-requested.
+      const removalRequestedIds = new Set(
+        [...appMap.entries()].filter(([, app]) => app.status === 'removal-requested').map(([sid]) => sid)
+      );
 
       // Group requirements by student so each admin table row = one student.
       const groupMap = new Map<string, StudentDocumentGroup>();
       requirements.forEach((r) => {
         const key = r.student_id;
+        // Skip students whose application is removal-requested — they are being removed.
+        if (removalRequestedIds.has(key)) return;
         const app = appMap.get(key);
         if (!groupMap.has(key)) {
           groupMap.set(key, {

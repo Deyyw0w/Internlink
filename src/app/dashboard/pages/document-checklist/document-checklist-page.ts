@@ -17,6 +17,15 @@ interface DocumentItem {
   updated_at: string;
 }
 
+interface StudentApplication {
+  id: string;
+  student_id: string;
+  host_company: string;
+  position_role: string;
+  status: string;
+  submitted_at: string;
+}
+
 const STORAGE_BUCKET = 'internship-documents';
 
 @Component({
@@ -41,8 +50,22 @@ const STORAGE_BUCKET = 'internship-documents';
         </div>
       </section>
 
+      <!-- Removal-pending state (student requested removal, awaiting admin approval) -->
+      <section *ngIf="application()?.status === 'removal-requested'"
+        class="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-200 space-y-8 pb-8">
+        <div class="text-center py-12">
+          <p class="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-4 py-2 rounded-lg inline-block">
+            Removal Requested — Awaiting Admin Approval
+          </p>
+          <p class="text-sm text-slate-700 mt-2 max-w-md mx-auto">
+            You have requested removal of your internship application. Your document checklist is hidden until the admin
+            approves or dismisses the request.
+          </p>
+        </div>
+      </section>
+
       <!-- Main Container -->
-      <section class="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-200 space-y-8 pb-8" *ngIf="documents().length > 0; else emptyState">
+      <section class="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-200 space-y-8 pb-8" *ngIf="application()?.status !== 'removal-requested' && documents().length > 0; else emptyState">
 
         <!-- Requirement Rows -->
         <div *ngFor="let doc of documents(); trackBy: trackByDoc">
@@ -97,7 +120,10 @@ const STORAGE_BUCKET = 'internship-documents';
 
       <ng-template #emptyState>
         <div class="text-center py-12">
-          <p class="text-xs text-slate-500 italic">No requirements found. Contact your coordinator to get started.</p>
+          <p *ngIf="application()?.status === 'removal-requested'" class="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-4 py-2 rounded-lg inline-block">
+            Removal Requested — Awaiting Admin Approval
+          </p>
+          <p *ngIf="!application()?.status || application()?.status !== 'removal-requested'" class="text-xs text-slate-500 italic">No requirements found. Contact your coordinator to get started.</p>
         </div>
       </ng-template>
 
@@ -111,6 +137,7 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
   private requirementsSubscription: any = null;
 
   documents = signal<DocumentItem[]>([]);
+  application = signal<StudentApplication | null>(null);
 
   trackByDoc = (_: number, item: DocumentItem) => item.id;
 
@@ -154,6 +181,24 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     }
 
     try {
+      // Fetch the student's latest application to check for removal-requested status.
+      const { data: apps, error: appError } = await supabase
+        .from('internship_applications')
+        .select('id, student_id, host_company, position_role, status, submitted_at')
+        .eq('student_id', String(studentId))
+        .order('submitted_at', { ascending: false })
+        .limit(1);
+
+      if (appError) throw appError;
+      this.application.set(apps?.[0] || null);
+
+      // Hide document requirements when removal is requested — admin must approve first.
+      if (apps?.[0]?.status === 'removal-requested') {
+        this.documents.set([]);
+        this.cdr.markForCheck();
+        return;
+      }
+
       const { data: reqs, error } = await supabase
         .from('student_requirements')
         .select('*')
