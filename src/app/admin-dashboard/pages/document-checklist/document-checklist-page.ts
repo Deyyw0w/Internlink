@@ -423,15 +423,36 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
 
       if (error) throw error;
 
-      // Clear the rejected requirement from the review modal immediately
-      // so the admin doesn't need to reopen the modal or reload the page.
+      // Update the modal state instantly so the Verify/Reject pill flips without a reload.
       const currentGroup = this.reviewStudent();
-      if (currentGroup && decision === 'rejected') {
+      if (currentGroup) {
         this.reviewStudent.set({
           ...currentGroup,
-          requirements: currentGroup.requirements.filter((r) => r.id !== req.id),
+          requirements: currentGroup.requirements.map((r) => {
+            if (r.id !== req.id) return r;
+            const statusLabel =
+              decision === 'verified'
+                ? 'Verified'
+                : decision === 'rejected'
+                  ? 'Rejected'
+                  : decision.charAt(0).toUpperCase() + decision.slice(1);
+            return { ...r, status: decision as DocumentStatus, statusLabel };
+          }),
         });
         this.cdr.markForCheck();
+      }
+
+      // Clear the rejected requirement from the review modal immediately
+      // so the admin doesn't need to reopen the modal or reload the page.
+      if (decision === 'rejected') {
+        const updatedGroup = this.reviewStudent();
+        if (updatedGroup) {
+          this.reviewStudent.set({
+            ...updatedGroup,
+            requirements: updatedGroup.requirements.filter((r) => r.id !== req.id),
+          });
+          this.cdr.markForCheck();
+        }
       }
 
       // Audit log the per-requirement decision (best-effort).

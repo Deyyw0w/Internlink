@@ -13,7 +13,7 @@ import { AdminSidebarComponent } from './admin-sidebar/admin-sidebar.component';
   styleUrl: './admin-dashboard.css',
 })
 export class AdminDashboardComponent {
-  /** Sidebar open/closed state (mobile overlay). */
+  /** Sidebar open/closed state (mobile overlay). Starts closed on mobile, irrelevant on desktop. */
   readonly isSidebarOpen = signal(false);
 
   /** True below the md breakpoint where the sidebar becomes a mobile overlay. */
@@ -22,7 +22,6 @@ export class AdminDashboardComponent {
   @HostListener('window:resize')
   onResize(): void {
     this.isMobile.set(window.innerWidth < 768);
-    // Close an open mobile overlay when resizing up to desktop.
     if (!this.isMobile()) this.isSidebarOpen.set(false);
   }
 
