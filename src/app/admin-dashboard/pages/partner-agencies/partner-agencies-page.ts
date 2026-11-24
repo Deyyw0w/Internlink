@@ -370,10 +370,12 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
       if (degreeError) throw degreeError;
 
       this.degreePrograms.set(
-        (degreeRows || []).map((d: any) => ({
-          name: d.name,
-          department: d.department,
-        }))
+        (degreeRows || [])
+          .filter((d: any) => d.department !== 'GLOCAL')
+          .map((d: any) => ({
+            name: d.name,
+            department: d.department,
+          }))
       );
 
       // 4. Load postings for all companies so admins can edit posting cards.
