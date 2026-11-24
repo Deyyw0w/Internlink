@@ -98,6 +98,8 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   });
   loading = signal(false);
   error = signal<string | null>(null);
+  addingAgency = signal(false);
+  savingPosting = signal(false);
   applicantsError = signal<string | null>(null);
   countryMgmtError = signal<string | null>(null);
 
@@ -723,6 +725,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     const target = postings[0];
     const isCreate = !target.id;
 
+    this.savingPosting.set(true);
     try {
       if (isCreate) {
         const oldValues = null;
@@ -784,6 +787,9 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('[PartnerAgencies] Save posting failed:', err);
       alert('Failed to save posting details. Please try again.');
+    } finally {
+      this.savingPosting.set(false);
+      this.cdr.markForCheck();
     }
   }
 
@@ -907,6 +913,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     const addressParts = [location, country].filter(Boolean);
     const address = addressParts.length > 0 ? addressParts.join(', ') : null;
 
+    this.addingAgency.set(true);
     try {
       const { error } = await supabase.from('companies').insert({
         name,
@@ -924,6 +931,9 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('[PartnerAgencies] Add agency failed:', err);
       alert('Failed to create agency. Please try again.');
+    } finally {
+      this.addingAgency.set(false);
+      this.cdr.markForCheck();
     }
   }
 

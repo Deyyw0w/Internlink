@@ -320,7 +320,7 @@
         </div>
         <div class="flex justify-end gap-3 pt-2">
           <button type="button" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition-colors" (click)="closeAddForm()">Cancel</button>
-          <button type="button" class="px-4 py-2 rounded-lg bg-[#1E3A5F] text-white font-semibold text-xs hover:bg-blue-700 transition-colors" (click)="addAgency()">Create Agency</button>
+          <button type="button" [disabled]="addingAgency()" class="px-4 py-2 rounded-lg bg-[#1E3A5F] text-white font-semibold text-xs hover:bg-blue-700 transition-colors opacity-50 pointer-events-none:disabled" (click)="addAgency()" [class.opacity-50]="addingAgency()">Create Agency</button>
         </div>
       </div>
     </div>
@@ -472,7 +472,7 @@
         </div>
         <div class="flex justify-end gap-3 pt-2">
           <button type="button" class="px-5 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 transition-colors" (click)="closePostingEdit()">Cancel</button>
-          <button type="button" class="px-5 py-2.5 rounded-lg bg-[#1E3A5F] text-white font-semibold text-sm hover:bg-blue-700 transition-colors" (click)="savePostingEdit()">Save Changes</button>
+          <button type="button" [disabled]="savingPosting()" class="px-5 py-2.5 rounded-lg bg-[#1E3A5F] text-white font-semibold text-sm hover:bg-blue-700 transition-colors" [class.opacity-50]="savingPosting()" (click)="savePostingEdit()">Save Changes</button>
         </div>
       </div>
     </div>
