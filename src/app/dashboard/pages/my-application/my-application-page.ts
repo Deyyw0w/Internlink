@@ -156,9 +156,13 @@ export interface AppHistoryEntry {
           <section class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
             <h2 class="text-lg font-bold text-slate-900 mb-6">Audit History &amp; Status Log</h2>
             <div class="relative space-y-6" *ngIf="history().length > 0; else noHistory">
-              <div class="absolute left-2.5 top-0 bottom-0 w-0.5 bg-slate-200"></div>
-              <div *ngFor="let entry of history(); let last = last" class="relative pl-8 pb-6" [class.pb-0]="last">
-                <div class="absolute left-0 top-2.5 w-4 h-4 rounded-full border-2" [ngClass]="entry.done ? 'bg-[#1E3A5F] border-[#1E3A5F]' : entry.current ? 'bg-amber-500 border-amber-500' : 'bg-slate-200 border-slate-200'"></div>
+              <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200"></div>
+              <div *ngFor="let entry of history(); let last = last" class="relative pl-10 pb-6" [class.pb-0]="last">
+                <div class="absolute left-4 top-2.5 w-4 h-4 rounded-full border-2 flex items-center justify-center" [ngClass]="entry.done ? 'bg-[#1E3A5F] border-[#1E3A5F]' : entry.current ? 'bg-amber-500 border-amber-500' : 'bg-slate-200 border-slate-200'">
+                  <svg *ngIf="entry.done" class="w-2 h-2 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                  <svg *ngIf="entry.current && !entry.done" class="w-2 h-2 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg>
+                  <svg *ngIf="!entry.done && !entry.current" class="w-2 h-2 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/></svg>
+                </div>
                 <div class="flex justify-between items-start gap-3 mb-1">
                   <span class="text-sm font-bold text-slate-800">{{ entry.status }}</span>
                   <span class="text-xs text-slate-500 font-mono">{{ entry.date }}</span>

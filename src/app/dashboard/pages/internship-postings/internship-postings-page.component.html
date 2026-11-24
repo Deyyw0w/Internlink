@@ -80,7 +80,7 @@
             <p class="category-sub text-[10px] font-bold uppercase tracking-wider">{{ cat.degrees.join(' • ') }}</p>
           </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
           <ng-container *ngFor="let post of filteredPosts(); trackBy: trackById">
             <article *ngIf="postBelongsToCategory(post, cat.degrees)" class="group bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between transition-all duration-200 ease-in-out hover:-translate-y-1 hover:shadow-lg hover:shadow-amber-50/20 hover:border-blue-500/40">
               <div>

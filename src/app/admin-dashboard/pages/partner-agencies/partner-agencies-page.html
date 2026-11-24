@@ -359,16 +359,36 @@
             </button>
           </div>
 
+          <!-- Country view filter chips -->
+          <div class="flex gap-2 mb-4">
+            <button
+              *ngFor="let view of ['all', 'active', 'inactive']"
+              type="button"
+              (click)="setCountryViewFilter(view)"
+              [ngClass]="{
+                'bg-[#1E3A5F] text-white': countryViewFilter() === view,
+                'bg-slate-100 text-slate-600': countryViewFilter() !== view
+              }"
+              class="px-3 py-1.5 rounded-md text-xs font-bold transition-colors"
+            >
+              {{ view === 'all' ? 'All' : view === 'active' ? 'Active' : 'Hidden' }}
+            </button>
+          </div>
+
           <div class="space-y-2">
-            <div *ngFor="let c of managedCountries()" class="group flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all min-w-0">
+            <div *ngFor="let c of filteredManagedCountries()" class="group flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all min-w-0">
               <div class="flex items-center min-w-0">
                 <div class="min-w-0">
                   <div class="text-sm font-medium text-slate-900 truncate">{{ c.name }}</div>
                   <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{{ c.is_active ? 'Active' : 'Inactive' }}</div>
                 </div>
               </div>
-              <button type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" (click)="openCountryDelete(c)" title="Delete country">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              <button type="button" class="px-2 py-1 text-xs rounded-md font-medium border bg-white {{
+                c.is_active
+                  ? 'border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100'
+                  : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-100'
+              }}" (click)="openCountryToggle(c)" [title]="c.is_active ? 'Hide country' : 'Restore country'">
+                {{ c.is_active ? 'Hide' : 'Restore' }}
               </button>
             </div>
 
@@ -421,10 +441,10 @@
     [open]="confirmCountryDialogOpen()"
     [title]="confirmCountryTitle()"
     [message]="confirmCountryMessage()"
-    [confirmLabel]="'Delete'"
+    [confirmLabel]="confirmCountryDialogOpen() ? (confirmTarget()?.is_active ? 'Hide' : 'Restore') : 'Confirm'"
     [cancelLabel]="'Cancel'"
-    (confirm)="deleteCountry()"
-    (cancel)="cancelCountryDelete()"
+    (confirm)="toggleCountryVisibility()"
+    (cancel)="cancelCountryToggle()"
   ></app-confirm-dialog>
 
   <app-confirm-dialog

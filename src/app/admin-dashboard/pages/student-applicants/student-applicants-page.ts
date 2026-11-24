@@ -229,6 +229,40 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
       };
       const newValues = { status: decision, admin_notes: this.reviewNotes() || null };
 
+      if (decision === 'removal-requested') {
+        const { error: deleteError } = await supabase
+          .from('internship_applications')
+          .delete()
+          .eq('id', applicant.id);
+
+        if (deleteError) throw deleteError;
+
+        const { error: reqError } = await supabase
+          .from('student_requirements')
+          .delete()
+          .eq('student_id', applicant.studentId);
+
+        if (reqError) {
+          console.error('[StudentApplicants] Failed to cleanup student requirements on removal:', reqError);
+        }
+
+        await this.auditLog.logActivity({
+          actionType: 'delete',
+          tableName: 'internship_applications',
+          recordId: applicant.id,
+          oldValues: {
+            status: applicant.status,
+            admin_notes: (applicant as any).admin_notes ?? null,
+          },
+          newValues: null,
+        });
+
+        this.closeReviewModal();
+        await this.loadApplicants();
+        this.cdr.markForCheck();
+        return;
+      }
+
       const { error } = await supabase
         .from('internship_applications')
         .update(newValues)

@@ -61,7 +61,18 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   readonly categoryLabels = AGENCY_CATEGORY_LABELS;
   agencies = signal<AgencyCard[]>([]);
   countries = signal<string[]>([]);
-  managedCountries = signal<Country[]>([]);
+  managedCountries = signal<Country[]>([]); // active-only, for dropdowns
+  allCountries = signal<Country[]>([]);     // every country, for the Manage Countries list
+
+  countryViewFilter = signal<string>('all');
+
+  filteredManagedCountries = computed(() => {
+    const list = this.allCountries();
+    const filter = this.countryViewFilter();
+    if (filter === 'active') return list.filter((c) => c.is_active);
+    if (filter === 'inactive') return list.filter((c) => !c.is_active);
+    return list;
+  });
   loading = signal(false);
   error = signal<string | null>(null);
   applicantsError = signal<string | null>(null);
@@ -332,20 +343,23 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Load active countries from the countries table for the managed dropdowns. */
+  /** Load countries for the managed dropdowns (active-only) and full list (all). */
   async loadCountries(): Promise<void> {
     try {
       const { data: rows, error } = await supabase
         .from('countries')
         .select('id, name, is_active, created_at')
-        .eq('is_active', true)
         .order('name', { ascending: true });
 
       if (error) throw error;
 
       const countryRows = (rows || []) as Country[];
-      this.managedCountries.set(countryRows);
-      this.countries.set(countryRows.map((c) => c.name));
+      // All countries: shown in Manage Countries list with Hide/Restore.
+      this.allCountries.set(countryRows);
+      // Active only: used in agency dropdowns and filters.
+      const activeCountries = countryRows.filter((c) => c.is_active);
+      this.managedCountries.set(activeCountries);
+      this.countries.set(activeCountries.map((c) => c.name));
     } catch (err) {
       console.error('[PartnerAgencies] Error loading countries:', err);
       this.countryMgmtError.set(
@@ -359,33 +373,43 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   confirmCountryTitle = signal('');
   confirmCountryMessage = signal('');
 
-  /** Open the confirm dialog to delete a country. */
-  openCountryDelete(country: Country): void {
+  /** Open the confirm dialog to hide/unhide a country. */
+  setCountryViewFilter(value: string): void {
+    this.countryViewFilter.set(value);
+    this.cdr.markForCheck();
+  }
+
+  openCountryToggle(country: Country): void {
     this.confirmTarget.set(country);
     this.countryMgmtError.set(null);
-    this.confirmCountryTitle.set('Delete Country?');
-    this.confirmCountryMessage.set(`This will remove <strong>${country.name}</strong>. This cannot be undone.`);
+    this.confirmCountryTitle.set(country.is_active ? 'Hide Country?' : 'Restore Country?');
+    this.confirmCountryMessage.set(
+      country.is_active
+        ? `This will hide <strong>${country.name}</strong> from agency dropdowns.`
+        : `This will restore <strong>${country.name}</strong> to agency dropdowns.`
+    );
     this.confirmCountryDialogOpen.set(true);
     this.cdr.markForCheck();
   }
 
-  /** Cancel the country delete confirm dialog. */
-  cancelCountryDelete(): void {
+  /** Cancel the country toggle confirm dialog. */
+  cancelCountryToggle(): void {
     this.confirmTarget.set(null);
     this.confirmCountryDialogOpen.set(false);
     this.cdr.markForCheck();
   }
 
-  /** Soft-delete a country (sets is_active = false) so it no longer appears in dropdowns. */
-  async deleteCountry(): Promise<void> {
+  /** Toggle country visibility (hide/unhide) via is_active flag. */
+  async toggleCountryVisibility(): Promise<void> {
     const country = this.confirmTarget();
     if (!country) return;
 
     this.countryMgmtError.set(null);
+    const newIsActive = !country.is_active;
 
     try {
       const oldValues = { is_active: country.is_active };
-      const newValues = { is_active: false };
+      const newValues = { is_active: newIsActive };
 
       const { error } = await supabase
         .from('countries')
@@ -408,9 +432,9 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
       this.confirmCountryDialogOpen.set(false);
       this.cdr.markForCheck();
     } catch (err) {
-      console.error('[PartnerAgencies] Delete country failed:', err);
+      console.error('[PartnerAgencies] Toggle country visibility failed:', err);
       this.countryMgmtError.set(
-        err instanceof Error ? err.message : 'Failed to delete country.'
+        err instanceof Error ? err.message : 'Failed to update country visibility.'
       );
     }
   }

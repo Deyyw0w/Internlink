@@ -59,3 +59,6 @@ devserver.log
 
 # Supabase local temp files
 supabase/.temp/
+
+# Local documentation artifacts (not for GitHub)
+/docs/

@@ -301,10 +301,12 @@ export class InternshipPostingsPageComponent implements OnInit {
           deptMap.get(abbr)!.degrees.push(d.name);
         });
 
-        const dynamicCategories = Array.from(deptMap.entries()).map(([abbr, cat], idx) => {
-          const [borderColor, bgColor, dotColor] = this.colorPalette[idx % this.colorPalette.length].split(' ');
-          return { ...cat, borderColor, bgColor, dotColor };
-        });
+        const dynamicCategories = Array.from(deptMap.entries())
+          .filter(([, cat]) => cat.department !== 'GLOCAL') // exclude admin-only GLOCAL department
+          .map(([abbr, cat], idx) => {
+            const [borderColor, bgColor, dotColor] = this.colorPalette[idx % this.colorPalette.length].split(' ');
+            return { ...cat, borderColor, bgColor, dotColor };
+          });
 
         this.categories.set(dynamicCategories);
         console.log('[InternshipPostings] Dynamic categories:', dynamicCategories.length);
