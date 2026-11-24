@@ -710,6 +710,22 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  /** Toggle a degree in/out of the multi-select pill list. */
+  toggleDegree(degree: string): void {
+    const current = this.postingEditEligibleDegrees();
+    if (current.includes(degree)) {
+      this.postingEditEligibleDegrees.set(current.filter((d) => d !== degree));
+    } else {
+      this.postingEditEligibleDegrees.set([...current, degree]);
+    }
+    this.cdr.markForCheck();
+  }
+
+  /** Check whether a degree is currently selected in the pill list. */
+  isDegreeSelected(degree: string): boolean {
+    return this.postingEditEligibleDegrees().includes(degree);
+  }
+
   /** Save posting-card edits to Supabase (title, description, deadline). */
   async savePostingEdit(): Promise<void> {
     const agencyId = this.postingEditAgencyId();
