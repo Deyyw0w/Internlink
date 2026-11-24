@@ -392,7 +392,9 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
       this.internshipPostings = (postings || []).map((p: any) => {
         const company = companyMap.get(p.company_id) || {};
-        const tags = industryToDegreeTags(company.industry || null, this.knownDegrees);
+        const tags = p.eligible_degrees
+          ? p.eligible_degrees.split(',').map((d: string) => d.trim()).filter(Boolean)
+          : [];
         return {
           ...p,
           degree: company.industry || '—',
