@@ -22,6 +22,16 @@ export interface AgencyCard {
   initials: string;
 }
 
+export interface InternshipPostingRow {
+  id: string;
+  company_id: string;
+  position_title: string;
+  description: string | null;
+  application_deadline: string | null;
+  available_slots: number | null;
+  status: string;
+}
+
 export interface Country {
   id: string;
   name: string;
@@ -65,6 +75,14 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   allCountries = signal<Country[]>([]);     // every country, for the Manage Countries list
 
   countryViewFilter = signal<string>('all');
+
+  // Posting-card edit state (position title, description, deadline).
+  companyPostings = new Map<string, InternshipPostingRow[]>();
+  postingEditOpen = signal(false);
+  postingEditAgencyId = signal<string | null>(null);
+  postingEditPosition = signal('');
+  postingEditDescription = signal('');
+  postingEditDeadline = signal('');
 
   filteredManagedCountries = computed(() => {
     const list = this.allCountries();
@@ -334,6 +352,33 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
           initials: this.initialsFromName(r.name),
         }))
       );
+
+      // 3. Load postings for all companies so admins can edit posting cards.
+      const companyIds = rows.map((r) => r.id);
+      if (companyIds.length > 0) {
+        const { data: postings, error: postingsError } = await supabase
+          .from('internship_postings')
+          .select('id, company_id, position_title, description, application_deadline, available_slots, status')
+          .in('company_id', companyIds);
+
+        if (postingsError) throw postingsError;
+
+        const postingMap = new Map<string, InternshipPostingRow[]>();
+        (postings || []).forEach((p: any) => {
+          const list = postingMap.get(p.company_id) || [];
+          list.push({
+            id: p.id,
+            company_id: p.company_id,
+            position_title: p.position_title,
+            description: p.description,
+            application_deadline: p.application_deadline,
+            available_slots: p.available_slots,
+            status: p.status,
+          });
+          postingMap.set(p.company_id, list);
+        });
+        this.companyPostings = postingMap;
+      }
     } catch (err) {
       console.error('[PartnerAgencies] Error loading agencies:', err);
       this.error.set(err instanceof Error ? err.message : 'Failed to load agencies.');
@@ -607,6 +652,107 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('[PartnerAgencies] Save slots failed:', err);
       alert('Failed to update slots. Please try again.');
+    }
+  }
+
+  /** Get postings linked to a specific agency (company). */
+  postingsForAgency(agencyId: string): InternshipPostingRow[] {
+    return this.companyPostings.get(agencyId) || [];
+  }
+
+  /** Open the edit-posting modal for a specific posting of an agency. */
+  openPostingEdit(agencyId: string, posting: InternshipPostingRow): void {
+    this.postingEditAgencyId.set(agencyId);
+    this.postingEditPosition.set(posting.position_title);
+    this.postingEditDescription.set(posting.description || '');
+    this.postingEditDeadline.set(posting.application_deadline || '');
+    this.postingEditOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  /** Close the edit-posting modal. */
+  closePostingEdit(): void {
+    this.postingEditOpen.set(false);
+    this.postingEditAgencyId.set(null);
+    this.postingEditPosition.set('');
+    this.postingEditDescription.set('');
+    this.postingEditDeadline.set('');
+    this.cdr.markForCheck();
+  }
+
+  /** Save posting-card edits to Supabase (title, description, deadline). */
+  async savePostingEdit(): Promise<void> {
+    const agencyId = this.postingEditAgencyId();
+    if (!agencyId) return;
+
+    const postings = this.postingsForAgency(agencyId);
+    if (postings.length === 0) {
+      alert('No posting found for this agency.');
+      return;
+    }
+
+    // If no posting exists yet, create one; otherwise update the first linked posting.
+    const target = postings[0];
+    const isCreate = !target.id;
+
+    try {
+      if (isCreate) {
+        const oldValues = null;
+        const newValues = {
+          company_id: agencyId,
+          position_title: this.postingEditPosition(),
+          description: this.postingEditDescription() || null,
+          application_deadline: this.postingEditDeadline() || null,
+          status: 'open',
+          available_slots: 0,
+        };
+
+        const { error } = await supabase
+          .from('internship_postings')
+          .insert(newValues);
+
+        if (error) throw error;
+
+        await this.auditLog.logActivity({
+          actionType: 'create',
+          tableName: 'internship_postings',
+          recordId: '',
+          oldValues,
+          newValues,
+        });
+      } else {
+        const oldValues = {
+          position_title: target.position_title,
+          description: target.description,
+          application_deadline: target.application_deadline,
+        };
+        const newValues = {
+          position_title: this.postingEditPosition(),
+          description: this.postingEditDescription() || null,
+          application_deadline: this.postingEditDeadline() || null,
+        };
+
+        const { error } = await supabase
+          .from('internship_postings')
+          .update(newValues)
+          .eq('id', target.id);
+
+        if (error) throw error;
+
+        await this.auditLog.logActivity({
+          actionType: 'update',
+          tableName: 'internship_postings',
+          recordId: target.id,
+          oldValues,
+          newValues,
+        });
+      }
+
+      await this.loadAgencies();
+      this.closePostingEdit();
+    } catch (err) {
+      console.error('[PartnerAgencies] Save posting failed:', err);
+      alert('Failed to save posting details. Please try again.');
     }
   }
 
