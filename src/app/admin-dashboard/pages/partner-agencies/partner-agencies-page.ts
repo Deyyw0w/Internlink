@@ -77,6 +77,9 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
 
   countryViewFilter = signal<string>('all');
 
+  // Degree programs for the eligible-degrees multi-select.
+  degreePrograms = signal<{ name: string; department: string }[]>([]);
+
   // Posting-card edit state (position title, description, deadline).
   companyPostings = new Map<string, InternshipPostingRow[]>();
   postingEditOpen = signal(false);
@@ -84,7 +87,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   postingEditPosition = signal('');
   postingEditDescription = signal('');
   postingEditDeadline = signal('');
-  postingEditEligibleDegrees = signal('');
+  postingEditEligibleDegrees = signal<string[]>([]);
 
   filteredManagedCountries = computed(() => {
     const list = this.allCountries();
@@ -355,7 +358,23 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
         }))
       );
 
-      // 3. Load postings for all companies so admins can edit posting cards.
+      // 3. Load degree programs for the eligible-degrees multi-select dropdown.
+      const { data: degreeRows, error: degreeError } = await supabase
+        .from('degree_programs')
+        .select('name, department')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (degreeError) throw degreeError;
+
+      this.degreePrograms.set(
+        (degreeRows || []).map((d: any) => ({
+          name: d.name,
+          department: d.department,
+        }))
+      );
+
+      // 4. Load postings for all companies so admins can edit posting cards.
       const companyIds = rows.map((r) => r.id);
       if (companyIds.length > 0) {
         const { data: postings, error: postingsError } = await supabase
@@ -669,7 +688,11 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     this.postingEditPosition.set(posting.position_title);
     this.postingEditDescription.set(posting.description || '');
     this.postingEditDeadline.set(posting.application_deadline || '');
-    this.postingEditEligibleDegrees.set(posting.eligible_degrees || '');
+    this.postingEditEligibleDegrees.set(
+      posting.eligible_degrees
+        ? posting.eligible_degrees.split(',').map((d) => d.trim()).filter(Boolean)
+        : []
+    );
     this.postingEditOpen.set(true);
     this.cdr.markForCheck();
   }
@@ -681,7 +704,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     this.postingEditPosition.set('');
     this.postingEditDescription.set('');
     this.postingEditDeadline.set('');
-    this.postingEditEligibleDegrees.set('');
+    this.postingEditEligibleDegrees.set([]);
     this.cdr.markForCheck();
   }
 
@@ -708,7 +731,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
           position_title: this.postingEditPosition(),
           description: this.postingEditDescription() || null,
           application_deadline: this.postingEditDeadline() || null,
-          eligible_degrees: this.postingEditEligibleDegrees() || null,
+          eligible_degrees: this.postingEditEligibleDegrees().join(', ') || null,
           status: 'open',
           available_slots: 0,
         };
@@ -737,7 +760,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
           position_title: this.postingEditPosition(),
           description: this.postingEditDescription() || null,
           application_deadline: this.postingEditDeadline() || null,
-          eligible_degrees: this.postingEditEligibleDegrees() || null,
+          eligible_degrees: this.postingEditEligibleDegrees().join(', ') || null,
         };
 
         const { error } = await supabase

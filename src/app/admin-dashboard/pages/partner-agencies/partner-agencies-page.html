@@ -465,8 +465,10 @@
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Eligible Courses / Degrees</label>
-          <input type="text" [(ngModel)]="postingEditEligibleDegrees" placeholder="e.g. BS in Computer Science, BS in Information Technology" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
-          <p class="text-[10px] text-slate-400 mt-1">Comma-separated. Leave blank to derive from company industry.</p>
+          <select multiple [(ngModel)]="postingEditEligibleDegrees" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] size-4">
+            <option *ngFor="let d of degreePrograms()" [value]="d.name">{{ d.name }} ({{ d.department }})</option>
+          </select>
+          <p class="text-[10px] text-slate-400 mt-1">Hold Ctrl/Cmd to select multiple. Leave none to derive from company industry.</p>
         </div>
         <div class="flex justify-end gap-3 pt-2">
           <button type="button" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition-colors" (click)="closePostingEdit()">Cancel</button>
