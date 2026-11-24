@@ -196,7 +196,7 @@
                 <button type="button" class="mb-2 w-full px-4 py-2 rounded-md bg-[#1E3A5F] text-white text-sm font-bold hover:bg-blue-700 transition-colors" (click)="postingsForAgency(agency.id).length > 0 ? openPostingEdit(agency.id, postingsForAgency(agency.id)[0]) : openPostingEdit(agency.id, { id: '', company_id: agency.id, position_title: '', description: null, application_deadline: null, available_slots: null, eligible_degrees: null, status: '' })">
                   Edit Posting
                 </button>
-                <button type="button" class="px-3 py-1.5 rounded-md bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors" (click)="deleteAgency(agency)">
+                <button type="button" class="px-3 py-1.5 rounded-md bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100 hover:bg-rose-100 hover:text-rose-700 transition-colors" (click)="deleteAgency(agency)">
                   Delete
                 </button>
               </td>
