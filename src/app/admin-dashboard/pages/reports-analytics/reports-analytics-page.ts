@@ -11,7 +11,6 @@ export interface ApplicationRow {
   status: string | null;
   student_name: string | null;
   submitted_at: string | null;
-  created_at: string | null;
 }
 
 export interface StatCard {
@@ -88,7 +87,7 @@ export class ReportsAnalyticsPageComponent implements OnInit {
       const [appsRes, profilesRes, companiesRes, reqsRes] = await Promise.all([
         supabase
           .from('internship_applications')
-          .select('id, reference_number, host_company, position_role, status, student_name, submitted_at, created_at')
+          .select('id, reference_number, host_company, position_role, status, student_name, submitted_at')
           .order('submitted_at', { ascending: false }),
         supabase.from('profiles').select('id, role, degree_program, email').eq('role', 'student'),
         supabase.from('companies').select('id, name, is_active'),
@@ -197,7 +196,7 @@ export class ReportsAnalyticsPageComponent implements OnInit {
   readonly filteredApps = computed(() => {
     const { start, end } = this.rangeBounds();
     return this.applications().filter((a) =>
-      this.inRange(a.submitted_at || a.created_at, start, end)
+      this.inRange(a.submitted_at, start, end)
     );
   });
 
@@ -230,7 +229,7 @@ export class ReportsAnalyticsPageComponent implements OnInit {
   readonly prevApps = computed(() => {
     const { start, end } = this.prevRangeBounds();
     return this.applications().filter((a) =>
-      this.inRange(a.submitted_at || a.created_at, start, end)
+      this.inRange(a.submitted_at, start, end)
     );
   });
 
@@ -334,7 +333,7 @@ export class ReportsAnalyticsPageComponent implements OnInit {
       const start = new Date(d.getFullYear(), d.getMonth(), 1);
       const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
       const count = this.applications().filter((a) =>
-        this.inRange(a.submitted_at || a.created_at, start, end)
+        this.inRange(a.submitted_at, start, end)
       ).length;
       months.push({ label, value: count });
     }
