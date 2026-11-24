@@ -140,7 +140,11 @@ export class ReportsAnalyticsPageComponent implements OnInit {
     now.setHours(23, 59, 59, 999);
     const preset = this.dateRange();
 
-    if (preset === 'all' || preset === 'custom') {
+    if (preset === 'all') {
+      return { start: null, end: null };
+    }
+
+    if (preset === 'custom') {
       const from = this.customFrom() ? new Date(this.customFrom()) : null;
       const to = this.customTo() ? new Date(this.customTo()) : null;
       return { start: from, end: to || now };
@@ -182,9 +186,11 @@ export class ReportsAnalyticsPageComponent implements OnInit {
   }
 
   private inRange(iso: string | null, start: Date | null, end: Date | null): boolean {
-    if (!iso || !start || !end) return false;
+    if (!iso) return false;
     const d = new Date(iso);
     if (isNaN(d.getTime())) return false;
+    // 'All time' (no start/end) includes everything
+    if (!start || !end) return true;
     return d >= start && d <= end;
   }
 
