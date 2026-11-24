@@ -231,7 +231,7 @@ export class InternshipPostingsPageComponent implements OnInit {
             industry: company.industry || '—',
             tags: r.eligible_degrees
               ? r.eligible_degrees.split(',').map((d: string) => d.trim()).filter(Boolean)
-              : industryToDegreeTags(company.industry),
+              : [],
             slots: Number(company.slots ?? r.available_slots ?? 0),
             applicants: 0,
             companyName: company.name || '—',
