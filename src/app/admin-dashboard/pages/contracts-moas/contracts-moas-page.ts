@@ -24,7 +24,6 @@ interface ContractItem {
   company_name: string | null;
   title: string;
   description: string | null;
-  contract_type: string | null;
   file_url: string | null;
   file_path: string | null;
   file_type: string | null;
@@ -129,7 +128,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
     category_id: '',
     title: '',
     description: '',
-    contract_type: 'MOA',
     company_id: '',
     file: null as File | null,
     fileName: '',
@@ -158,7 +156,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
     id: '',
     title: '',
     description: '',
-    contract_type: 'MOA',
     category_id: '',
     company_id: '',
     file: null as File | null,
@@ -243,7 +240,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
             company_id,
             title,
             description,
-            contract_type,
             file_url,
             file_path,
             file_type,
@@ -532,7 +528,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       category_id: '',
       title: '',
       description: '',
-      contract_type: 'MOA',
       company_id: '',
       file: null as File | null,
       fileName: '',
@@ -553,7 +548,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       category_id: '',
       title: '',
       description: '',
-      contract_type: 'MOA',
       company_id: '',
       file: null as File | null,
       fileName: '',
@@ -577,7 +571,7 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
 
   /** Save (create) a new contract with uploaded file. */
   async saveUploadContract(): Promise<void> {
-    const { category_id, title, description, contract_type, company_id, file, start_date, end_date, status } = this.uploadForm;
+    const { category_id, title, description, company_id, file, start_date, end_date, status } = this.uploadForm;
 
     if (!category_id) {
       this.uploadSubmitError.set('Please select a category.');
@@ -618,7 +612,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
         company_id: company_id || null,
         title: title.trim(),
         description: description.trim() || null,
-        contract_type,
         file_url: fileUrl,
         file_path: filePath,
         file_type: fileType,
@@ -667,7 +660,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       id: item.id,
       title: item.title,
       description: item.description || '',
-      contract_type: item.contract_type || 'MOA',
       category_id: item.category_id || '',
       company_id: item.company_id || '',
       file: null as File | null,
@@ -686,7 +678,7 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
     this.showEditContractModal.set(false);
     this.editingContract.set(null);
     this.contractEditForm = {
-      id: '', title: '', description: '', contract_type: 'MOA', category_id: '', company_id: '',
+      id: '', title: '', description: '', category_id: '', company_id: '',
       file: null as File | null, fileName: '', start_date: '', end_date: '', status: 'draft',
     };
     this.contractSubmitError.set('');
@@ -705,7 +697,7 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
 
   /** Save edits to an existing contract (replace file if a new one was picked). */
   async saveEditContract(): Promise<void> {
-    const { id, title, description, contract_type, category_id, company_id, file, start_date, end_date, status } = this.contractEditForm;
+    const { id, title, description, category_id, company_id, file, start_date, end_date, status } = this.contractEditForm;
 
     if (!title.trim()) {
       this.contractSubmitError.set('Title is required.');
@@ -736,7 +728,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       const oldValues = {
         title: this.editingContract()?.title,
         description: this.editingContract()?.description,
-        contract_type: this.editingContract()?.contract_type,
         category_id: this.editingContract()?.category_id,
         company_id: this.editingContract()?.company_id,
         file_url: this.editingContract()?.file_url,
@@ -745,7 +736,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       const newValues = {
         title: title.trim(),
         description: description.trim() || null,
-        contract_type,
         category_id: category_id || null,
         company_id: company_id || null,
         file_url: fileUrl,
@@ -792,7 +782,6 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
       id: item.id,
       title: item.title,
       description: item.description || '',
-      contract_type: item.contract_type || 'MOA',
       category_id: item.category_id || '',
       company_id: item.company_id || '',
       file: null as File | null,
@@ -810,7 +799,7 @@ export class ContractsMoasPageComponent implements OnInit, OnDestroy {
   closeReplaceFileModal(): void {
     this.showReplaceFileModal.set(false);
     this.contractEditForm = {
-      id: '', title: '', description: '', contract_type: 'MOA', category_id: '', company_id: '',
+      id: '', title: '', description: '', category_id: '', company_id: '',
       file: null as File | null, fileName: '', start_date: '', end_date: '', status: 'draft',
     };
     this.replaceSubmitError.set('');

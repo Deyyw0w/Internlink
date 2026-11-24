@@ -177,7 +177,6 @@
             <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white text-center">Title</th>
             <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white text-center">Category</th>
             <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white text-center">Company</th>
-            <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white text-center">Type</th>
             <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white text-center">Status</th>
             <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white text-center">Dates</th>
             <th class="px-6 py-4 text-xs font-semibold tracking-wider uppercase text-white text-center">Actions</th>
@@ -188,7 +187,6 @@
           <tr *ngFor="let c of pagedContracts(); trackBy: trackByContract" class="group">
             <td class="px-6 py-4">
               <div class="text-slate-900 font-semibold">{{ c.title }}</div>
-              <div class="text-[10px] text-slate-500 mt-0.5">{{ c.contract_type || '—' }} • {{ c.contract_type ? '' : '' }}</div>
               <div *ngIf="c.description" class="text-[10px] text-slate-400 line-clamp-1 mt-0.5" [title]="c.description">{{ c.description }}</div>
             </td>
 
@@ -205,8 +203,6 @@
             </td>
 
             <td class="px-6 py-4 text-sm text-slate-600">{{ c.company_name || '—' }}</td>
-
-            <td class="px-6 py-4 text-sm text-slate-600 font-mono">{{ c.contract_type || 'MOA' }}</td>
 
             <td class="px-6 py-4">
               <span [ngClass]="statusClasses(this.contractStatus(c.end_date, c.status))">
@@ -408,24 +404,6 @@
             placeholder="What is this contract about?"
             class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors resize-none"
           ></textarea>
-        </div>
-
-        <!-- Contract Type -->
-        <div class="flex flex-col gap-2">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Contract Type
-          </label>
-
-          <select
-            [ngModel]="uploadForm.contract_type"
-            (ngModelChange)="uploadForm.contract_type = $event"
-            name="contract_type"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors cursor-pointer"
-          >
-            <option value="MOA">MOA</option>
-            <option value="Contract">Contract</option>
-            <option value="Agreement">Agreement</option>
-          </select>
         </div>
 
         <!-- Company -->
@@ -831,16 +809,6 @@
               <option value="">Select a company…</option>
               <option *ngFor="let co of companies()" [value]="co.id">{{ co.name }}</option>
             </select>
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Type</label>
-            <input
-              type="text"
-              [ngModel]="contractEditForm.contract_type"
-              (ngModelChange)="contractEditForm.contract_type = $event"
-              name="contract_type"
-              class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:ring-1 focus:ring-[#1E3A5F] focus:border-transparent outline-none transition-colors"
-            />
           </div>
           <div class="flex flex-col gap-2">
             <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
