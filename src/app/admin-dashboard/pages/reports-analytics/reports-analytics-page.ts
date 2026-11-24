@@ -10,7 +10,6 @@ export interface ApplicationRow {
   position_role: string | null;
   status: string | null;
   student_name: string | null;
-  email: string | null;
   submitted_at: string | null;
   created_at: string | null;
 }
@@ -89,7 +88,7 @@ export class ReportsAnalyticsPageComponent implements OnInit {
       const [appsRes, profilesRes, companiesRes, reqsRes] = await Promise.all([
         supabase
           .from('internship_applications')
-          .select('id, reference_number, host_company, position_role, status, student_name, email, submitted_at, created_at')
+          .select('id, reference_number, host_company, position_role, status, student_name, submitted_at, created_at')
           .order('submitted_at', { ascending: false }),
         supabase.from('profiles').select('id, role, degree_program, email').eq('role', 'student'),
         supabase.from('companies').select('id, name, is_active'),
@@ -442,9 +441,9 @@ export class ReportsAnalyticsPageComponent implements OnInit {
       return;
     }
 
-    const headers = ['ID', 'Reference Number', 'Company', 'Position', 'Status', 'Student Name', 'Email', 'Submitted At'];
+    const headers = ['ID', 'Reference Number', 'Company', 'Position', 'Status', 'Student Name', 'Submitted At'];
     const rows = apps.map((a) =>
-      [a.id, a.reference_number ?? '', a.host_company ?? '', a.position_role ?? '', a.status ?? '', a.student_name ?? '', a.email ?? '', a.submitted_at ?? '']
+      [a.id, a.reference_number ?? '', a.host_company ?? '', a.position_role ?? '', a.status ?? '', a.student_name ?? '', a.submitted_at ?? '']
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(',')
     );
