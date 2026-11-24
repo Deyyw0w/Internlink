@@ -254,7 +254,7 @@
   </section>
 
   <!-- Review & Decision Modal -->
-  <div *ngIf="showReviewModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xl" (click)="closeReviewModal()">
+  <div *ngIf="showReviewModal()" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-2xl" (click)="closeReviewModal()">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl border border-slate-200/80" (click)="$event.stopPropagation()">
       <!-- Header -->
       <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
