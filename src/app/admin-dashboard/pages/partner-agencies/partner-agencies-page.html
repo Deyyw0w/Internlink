@@ -480,6 +480,14 @@
               {{ d.name }} <span *ngIf="isDegreeSelected(d.name)" class="ml-1">✓</span>
             </button>
           </div>
+          <button
+            type="button"
+            *ngIf="postingEditEligibleDegrees().length > 0"
+            (click)="clearDegrees()"
+            class="text-xs text-rose-600 hover:text-rose-700 font-medium underline decoration-rose-200 hover:decoration-rose-400 py-1"
+          >
+            Clear all
+          </button>
           <p class="text-[11px] text-slate-400 mt-1">Click to select multiple degrees. Leave none to derive from company industry.</p>
         </div>
         <div class="flex justify-end gap-3 pt-2">

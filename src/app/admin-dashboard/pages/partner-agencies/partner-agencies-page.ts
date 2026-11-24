@@ -728,6 +728,12 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     return this.postingEditEligibleDegrees().includes(degree);
   }
 
+  /** Clear all selected degrees in the pill list. */
+  clearDegrees(): void {
+    this.postingEditEligibleDegrees.set([]);
+    this.cdr.markForCheck();
+  }
+
   /** Save posting-card edits to Supabase (title, description, deadline). */
   async savePostingEdit(): Promise<void> {
     const agencyId = this.postingEditAgencyId();
