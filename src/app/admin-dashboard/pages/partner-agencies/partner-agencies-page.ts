@@ -29,6 +29,7 @@ export interface InternshipPostingRow {
   description: string | null;
   application_deadline: string | null;
   available_slots: number | null;
+  eligible_degrees: string | null;
   status: string;
 }
 
@@ -83,6 +84,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
   postingEditPosition = signal('');
   postingEditDescription = signal('');
   postingEditDeadline = signal('');
+  postingEditEligibleDegrees = signal('');
 
   filteredManagedCountries = computed(() => {
     const list = this.allCountries();
@@ -358,7 +360,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
       if (companyIds.length > 0) {
         const { data: postings, error: postingsError } = await supabase
           .from('internship_postings')
-          .select('id, company_id, position_title, description, application_deadline, available_slots, status')
+          .select('id, company_id, position_title, description, application_deadline, available_slots, eligible_degrees, status')
           .in('company_id', companyIds);
 
         if (postingsError) throw postingsError;
@@ -373,6 +375,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
             description: p.description,
             application_deadline: p.application_deadline,
             available_slots: p.available_slots,
+            eligible_degrees: p.eligible_degrees,
             status: p.status,
           });
           postingMap.set(p.company_id, list);
@@ -666,6 +669,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     this.postingEditPosition.set(posting.position_title);
     this.postingEditDescription.set(posting.description || '');
     this.postingEditDeadline.set(posting.application_deadline || '');
+    this.postingEditEligibleDegrees.set(posting.eligible_degrees || '');
     this.postingEditOpen.set(true);
     this.cdr.markForCheck();
   }
@@ -677,6 +681,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
     this.postingEditPosition.set('');
     this.postingEditDescription.set('');
     this.postingEditDeadline.set('');
+    this.postingEditEligibleDegrees.set('');
     this.cdr.markForCheck();
   }
 
@@ -703,6 +708,7 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
           position_title: this.postingEditPosition(),
           description: this.postingEditDescription() || null,
           application_deadline: this.postingEditDeadline() || null,
+          eligible_degrees: this.postingEditEligibleDegrees() || null,
           status: 'open',
           available_slots: 0,
         };
@@ -725,11 +731,13 @@ export class PartnerAgenciesPageComponent implements OnInit, OnDestroy {
           position_title: target.position_title,
           description: target.description,
           application_deadline: target.application_deadline,
+          eligible_degrees: target.eligible_degrees,
         };
         const newValues = {
           position_title: this.postingEditPosition(),
           description: this.postingEditDescription() || null,
           application_deadline: this.postingEditDeadline() || null,
+          eligible_degrees: this.postingEditEligibleDegrees() || null,
         };
 
         const { error } = await supabase

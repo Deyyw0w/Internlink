@@ -189,7 +189,7 @@ export class InternshipPostingsPageComponent implements OnInit {
       // Fetch postings
       const { data: rows, error } = await supabase
         .from('internship_postings')
-        .select('*')
+        .select('*, eligible_degrees')
         .eq('status', 'open');
 
       console.log('[InternshipPostings] Raw Supabase response:', { rows: rows?.length, error });
@@ -229,7 +229,9 @@ export class InternshipPostingsPageComponent implements OnInit {
             moaValidUntil: r.application_deadline || '',
             degree: company.industry || '—',
             industry: company.industry || '—',
-            tags: industryToDegreeTags(company.industry),
+            tags: r.eligible_degrees
+              ? r.eligible_degrees.split(',').map((d: string) => d.trim()).filter(Boolean)
+              : industryToDegreeTags(company.industry),
             slots: Number(company.slots ?? r.available_slots ?? 0),
             applicants: 0,
             companyName: company.name || '—',
