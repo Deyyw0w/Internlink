@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
 import { NewsCarouselComponent, NewsItem } from '../../news-carousel/news-carousel.component';
@@ -20,7 +21,7 @@ interface StatCard {
 @Component({
   selector: 'app-admin-dashboard-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, NewsCarouselComponent],
+  imports: [CommonModule, RouterModule, FormsModule, NewsCarouselComponent],
   templateUrl: './dashboard-page.html',
 })
 export class AdminDashboardPageComponent implements OnInit, OnDestroy {
