@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard';
+import { AdminNewsPageComponent } from './admin-dashboard/pages/news/news-page';
 import { ContractsMoasPageComponent } from './admin-dashboard/pages/contracts-moas/contracts-moas-page';
 import { Dashboard } from './dashboard/dashboard';
 import { DocumentChecklistPageComponent as AdminDocumentChecklistPageComponent } from './admin-dashboard/pages/document-checklist/document-checklist-page';
@@ -44,6 +45,7 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: AdminDashboardPageComponent },
+      { path: 'news', component: AdminNewsPageComponent },
       { path: 'student-applicants', component: StudentApplicantsPageComponent },
       { path: 'document-checklist', component: AdminDocumentChecklistPageComponent },
       { path: 'partner-agencies', component: PartnerAgenciesPageComponent },

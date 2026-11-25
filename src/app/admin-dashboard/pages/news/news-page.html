@@ -1,0 +1,166 @@
+<!-- Admin News Management page -->
+<main class="w-full px-8 py-6 space-y-8">
+
+  <!-- Header -->
+  <section class="bg-[#1E3A5F] border-l-4 border-amber-500 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-2">
+      <h1 class="text-xl font-extrabold tracking-tight text-white">News &amp; Updates</h1>
+      <p class="text-xs text-slate-300 mt-1">
+        Manage news items that appear in the dashboard carousel. Published items are visible to students and admins.
+      </p>
+      <p *ngIf="error()" class="text-xs text-red-100 mt-2">{{ error() }}</p>
+    </div>
+
+    <div class="flex gap-3">
+      <button
+        type="button"
+        (click)="openForm()"
+        class="flex items-center gap-2 bg-white text-[#1E3A5F] hover:bg-slate-100 font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition-all"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Add News
+      </button>
+      <button
+        type="button"
+        (click)="importUslPrograms()"
+        [disabled]="importingUsl()"
+        class="flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition-all opacity-50:disabled pointer-events-none:disabled"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5M7 10l5-5M12 15V3"/></svg>
+        Import from USL Programs
+      </button>
+    </div>
+  </section>
+
+  <!-- Loading -->
+  <div *ngIf="loading()" class="w-full px-8 py-20 flex justify-center">
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-[spin_1s_linear_infinite]"></div>
+      <p class="text-slate-500 text-sm">Loading news…</p>
+    </div>
+  </div>
+
+  <!-- News Table -->
+  <section *ngIf="!loading()" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead class="bg-[#1C3A63] border-b border-[#1C3A63]">
+          <tr>
+            <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Title</th>
+            <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Excerpt</th>
+            <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Published</th>
+            <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Status</th>
+            <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-white text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr *ngFor="let n of news(); trackBy: trackByNews" class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4">
+              <div class="font-semibold text-slate-900">{{ n.title }}</div>
+              <div *ngIf="n.link_url" class="text-xs text-slate-500 mt-0.5">{{ n.link_url }}</div>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-600 line-clamp-2">{{ n.excerpt }}</td>
+            <td class="px-6 py-4 text-sm text-slate-600">{{ formatDate(n.published_at) }}</td>
+            <td class="px-6 py-4">
+              <span
+                [ngClass]="n.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
+                class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full whitespace-nowrap inline-block"
+              >
+                {{ n.is_published ? 'Published' : 'Draft' }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <button
+                type="button"
+                (click)="openForm(n)"
+                class="px-3 py-1.5 rounded-md bg-[#1E3A5F] text-white text-xs font-bold hover:bg-blue-700 transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                (click)="deleteNews(n)"
+                class="ml-2 px-3 py-1.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100 text-xs font-bold hover:bg-rose-100 hover:text-rose-700 transition-colors"
+              >
+                Delete
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="news().length === 0">
+            <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500">
+              No news items yet. Add your first news item to show it in the dashboard carousel.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Add / Edit News Form -->
+  <div *ngIf="editMode()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" (click)="closeForm()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200" (click)="$event.stopPropagation()">
+      <div class="p-6 border-b border-slate-200 flex justify-between items-start">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 mb-1">{{ editingId() ? 'Edit News Item' : 'Add News Item' }}</h3>
+          <p class="text-xs text-slate-500">Manage news shown in the dashboard carousel.</p>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" (click)="closeForm()">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Title</label>
+          <input type="text" [(ngModel)]="formTitle" placeholder="e.g. New Internship Programs Open" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Excerpt</label>
+          <textarea [(ngModel)]="formExcerpt" rows="3" placeholder="Short summary of the news…" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Image Label</label>
+          <input type="text" [(ngModel)]="formImageLabel" placeholder="e.g. News, Announcement, Update" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Image URL</label>
+          <input type="text" [(ngModel)]="formImageUrl" placeholder="https://example.com/image.jpg" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Link URL (optional)</label>
+          <input type="url" [(ngModel)]="formLinkUrl" placeholder="https://usl.edu.ph/programs/" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Published At</label>
+            <input type="datetime-local" [(ngModel)]="formPublishedAt" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
+          </div>
+          <div class="flex items-end">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Published</label>
+            <select [(ngModel)]="formIsPublished" class="ml-1 w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]">
+              <option value="true">Published</option>
+              <option value="false">Draft</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" class="px-5 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 transition-colors" (click)="closeForm()">Cancel</button>
+          <button type="button" class="px-5 py-2.5 rounded-lg bg-[#1E3A5F] text-white font-semibold text-sm hover:bg-blue-700 transition-colors" (click)="saveNews()">Save News</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Dialog -->
+  <app-confirm-dialog
+    [open]="confirmOpen()"
+    [title]="confirmTitle()"
+    [message]="confirmMessage()"
+    [confirmLabel]="confirmLabel()"
+    [cancelLabel]="'Cancel'"
+    [loading]="confirmIsDeleting()"
+    [loadingLabel]="'Deleting…'"
+    (confirm)="handleConfirm()"
+    (cancel)="cancelConfirm()"
+  ></app-confirm-dialog>
+
+</main>

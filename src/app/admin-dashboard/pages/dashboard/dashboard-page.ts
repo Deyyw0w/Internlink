@@ -162,59 +162,32 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
 
   async loadNews(): Promise<void> {
     try {
-      // Derive news items from recent application and requirement activity
-      const { data: apps, error: appsError } = await supabase
-        .from('internship_applications')
-        .select('id, reference_number, host_company, position_role, status, submitted_at')
-        .order('submitted_at', { ascending: false })
-        .limit(5);
+      const { data: rows, error } = await supabase
+        .from('news')
+        .select('id, title, excerpt, image_label, image_url, link_url, is_published, published_at')
+        .eq('is_published', true)
+        .order('published_at', { ascending: false })
+        .limit(4);
 
-      if (appsError) throw appsError;
+      if (error) throw error;
 
-      const { data: reqs, error: reqsError } = await supabase
-        .from('student_requirements')
-        .select('id, requirement_name, status, updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(5);
+      const items: NewsItem[] = (rows || []).map((n: any) => ({
+        title: n.title,
+        excerpt: n.excerpt,
+        date: n.published_at
+          ? new Date(n.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+          : 'Recent',
+        imageLabel: n.image_label || 'News',
+      }));
 
-      if (reqsError) throw reqsError;
-
-      const items: NewsItem[] = [];
-
-      (apps || []).forEach((a: any) => {
-        items.push({
-          title: 'New Internship Application',
-          excerpt: `Application for ${a.position_role} at ${a.host_company} submitted (${a.reference_number || '—'})`,
-          date: a.submitted_at
-            ? new Date(a.submitted_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-            : 'Recent',
-          imageLabel: 'Application',
-        });
-      });
-
-      (reqs || []).forEach((r: any) => {
-        items.push({
-          title: 'Document Status Updated',
-          excerpt: `${r.requirement_name} marked as ${r.status}`,
-          date: r.updated_at
-            ? new Date(r.updated_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-            : 'Recent',
-          imageLabel: 'Document',
-        });
-      });
-
-      // Sort newest first, take top 4
-      items.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-      this.newsItems.set(items.slice(0, 4));
+      this.newsItems.set(items);
     } catch (err) {
       console.error('[AdminDashboard] Error loading news:', err);
       this.newsItems.set([]);
     }
   }
 
-  /** Subscribe to real-time changes so stats and news refresh live when students apply or admins verify documents. */
+  /** Subscribe to real-time changes so stats and news refresh live when students apply, admins verify documents, or news is updated. */
   private subscribeToUpdates(): void {
     this.adminSubscription = supabase
       .channel('admin-dashboard-updates')
@@ -233,6 +206,14 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
         () => {
           console.log('[AdminDashboard] Realtime event (student_requirements): refreshing stats + news.');
           void this.loadStats();
+          void this.loadNews();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'news' },
+        () => {
+          console.log('[AdminDashboard] Realtime event (news): refreshing news.');
           void this.loadNews();
         }
       )
