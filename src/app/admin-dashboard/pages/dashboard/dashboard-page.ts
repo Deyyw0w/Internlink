@@ -3,7 +3,6 @@ import { ChangeDetectorRef, Component, inject, OnInit, OnDestroy, signal } from 
 import { RouterModule } from '@angular/router';
 
 import { NewsCarouselComponent, NewsItem } from '../../news-carousel/news-carousel.component';
-import { UslProgramsEmbedComponent } from '../../../shared/components/usl-programs-embed/usl-programs-embed.component';
 import { supabase } from '../../../../environments/supabase.config';
 
 type StatTone = 'blue' | 'orange' | 'green' | 'purple';
@@ -20,7 +19,7 @@ interface StatCard {
 @Component({
   selector: 'app-admin-dashboard-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, NewsCarouselComponent, UslProgramsEmbedComponent],
+  imports: [CommonModule, RouterModule, NewsCarouselComponent],
   templateUrl: './dashboard-page.html',
 })
 export class AdminDashboardPageComponent implements OnInit, OnDestroy {
