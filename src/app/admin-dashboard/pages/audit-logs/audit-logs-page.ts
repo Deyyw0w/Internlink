@@ -295,6 +295,20 @@ export class AdminAuditLogsPageComponent implements OnInit, OnDestroy {
 
   trackByLog = (_: number, l: AuditRow): string => l.id;
 
+  /** Track which log row has its change-details expanded. */
+  expandedLogId = signal<string | null>(null);
+
+  /** Toggle the review-changes expansion for a given log row. */
+  toggleReview(logId: string): void {
+    this.expandedLogId.set(this.expandedLogId() === logId ? null : logId);
+    this.cdr.markForCheck();
+  }
+
+  /** Check whether a given log row is expanded. */
+  isExpanded(logId: string): boolean {
+    return this.expandedLogId() === logId;
+  }
+
   /** Tables available for the filter dropdown. */
   readonly tableOptions = [
     { key: '', label: 'All tables' },
