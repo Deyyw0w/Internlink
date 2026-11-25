@@ -54,6 +54,9 @@ Thumbs.db
 *.log
 devserver.log
 
+# Vercel
+.vercel/
+
 # Claude Code project files
 .claude/
 

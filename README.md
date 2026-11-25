@@ -54,6 +54,35 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+## Deployment
+
+### Vercel (recommended)
+
+1. Push this repository to GitHub.
+2. In Vercel, **Add New Project** and import the `InternLink` repository.
+3. Vercel detects `vercel.json` and uses these settings automatically:
+   - Build command: `bash scripts/generate-env.sh && npm run build && cp dist/InternLink/browser/index.csr.html dist/InternLink/browser/index.html`
+   - Output directory: `dist/InternLink/browser`
+   - Install command: `npm ci`
+4. Add the following **Environment Variables** in your Vercel project settings:
+   - `SUPABASE_URL` — your Supabase project URL
+   - `SUPABASE_ANON_KEY` — your Supabase anon (public) key
+5. Deploy. Client-side routes (e.g. `/dashboard`, `/login`) are handled by the catch-all rewrite in `vercel.json`.
+
+The app is deployed as a static SPA with prerendered routes, matching the existing Netlify setup (`netlify.toml`).
+
+### Netlify
+
+The `netlify.toml` at the repo root configures Netlify builds using the same `scripts/generate-env.sh` step. Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` in Netlify's environment variables and deploy.
+
+### Local development
+
+```bash
+npm run start
+```
+
+Then open `http://localhost:4200/`.
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
