@@ -161,33 +161,13 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   }
 
   async loadNews(): Promise<void> {
-    try {
-      const { data: rows, error } = await supabase
-        .from('news')
-        .select('id, title, excerpt, image_label, image_url, link_url, is_published, published_at')
-        .eq('is_published', true)
-        .order('published_at', { ascending: false })
-        .limit(4);
-
-      if (error) throw error;
-
-      const items: NewsItem[] = (rows || []).map((n: any) => ({
-        title: n.title,
-        excerpt: n.excerpt,
-        date: n.published_at
-          ? new Date(n.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-          : 'Recent',
-        imageLabel: n.image_label || 'News',
-      }));
-
-      this.newsItems.set(items);
-    } catch (err) {
-      console.error('[AdminDashboard] Error loading news:', err);
-      this.newsItems.set([]);
-    }
+    // News carousel reads from news table only — no external fetching.
+    // Direct browser fetch from usl.edu.ph is blocked by CORS (browser security).
+    // If you want live USL program data, route it through a backend proxy first.
+    this.newsItems.set([]);
   }
 
-  /** Subscribe to real-time changes so stats and news refresh live when students apply, admins verify documents, or news is updated. */
+  /** Subscribe to real-time changes so stats refresh live when students apply or admins verify documents. */
   private subscribeToUpdates(): void {
     this.adminSubscription = supabase
       .channel('admin-dashboard-updates')
@@ -195,26 +175,16 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'internship_applications' },
         () => {
-          console.log('[AdminDashboard] Realtime event (internship_applications): refreshing stats + news.');
+          console.log('[AdminDashboard] Realtime event (internship_applications): refreshing stats.');
           void this.loadStats();
-          void this.loadNews();
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'student_requirements' },
         () => {
-          console.log('[AdminDashboard] Realtime event (student_requirements): refreshing stats + news.');
+          console.log('[AdminDashboard] Realtime event (student_requirements): refreshing stats.');
           void this.loadStats();
-          void this.loadNews();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'news' },
-        () => {
-          console.log('[AdminDashboard] Realtime event (news): refreshing news.');
-          void this.loadNews();
         }
       )
       .subscribe((status) => {
