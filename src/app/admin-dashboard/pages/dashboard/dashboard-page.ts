@@ -161,10 +161,30 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   }
 
   async loadNews(): Promise<void> {
-    // News carousel reads from news table only — no external fetching.
-    // Direct browser fetch from usl.edu.ph is blocked by CORS (browser security).
-    // If you want live USL program data, route it through a backend proxy first.
-    this.newsItems.set([]);
+    // Static sample news items for demonstration.
+    // These are hardcoded for the research paper demo — no database needed.
+    const items: NewsItem[] = [
+      {
+        title: 'New Internship Programs Open',
+        excerpt: 'Applications are now open for IT Support, Electrical Engineering, and Software Development internships.',
+        date: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+        imageLabel: 'Announcement',
+      },
+      {
+        title: 'Document Submission Reminder',
+        excerpt: 'Please submit your medical certificate and endorsement letter before the deadline.',
+        date: new Date(Date.now() - 86400000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+        imageLabel: 'Reminder',
+      },
+      {
+        title: 'Partner Agency Visit',
+        excerpt: 'Representatives from partner companies will visit campus next week for student interviews.',
+        date: new Date(Date.now() - 172800000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+        imageLabel: 'Event',
+      },
+    ];
+
+    this.newsItems.set(items);
   }
 
   /** Subscribe to real-time changes so stats refresh live when students apply or admins verify documents. */
