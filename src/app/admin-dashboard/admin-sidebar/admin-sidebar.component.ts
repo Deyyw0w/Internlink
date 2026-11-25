@@ -5,7 +5,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 interface SidebarItem {
   label: string;
   route: string;
-  icon: 'dashboard' | 'users' | 'file-check' | 'building' | 'file-contract' | 'file-text' | 'chart' | 'bell' | 'cog' | 'admin-panel-settings' | 'agency-office' | 'activity-log' | 'megaphone';
+  icon: 'dashboard' | 'users' | 'file-check' | 'building' | 'file-contract' | 'file-text' | 'chart' | 'bell' | 'cog' | 'admin-panel-settings' | 'agency-office' | 'activity-log';
 }
 
 @Component({
@@ -18,7 +18,6 @@ interface SidebarItem {
 export class AdminSidebarComponent {
   readonly menuItems: SidebarItem[] = [
     { label: 'Dashboard', route: '/admin-dashboard/dashboard', icon: 'dashboard' },
-    { label: 'News & Updates', route: '/admin-dashboard/news', icon: 'megaphone' },
     { label: 'Student Applicants', route: '/admin-dashboard/student-applicants', icon: 'users' },
     { label: 'Document Verification', route: '/admin-dashboard/document-checklist', icon: 'file-check' },
     { label: 'Partner Agencies', route: '/admin-dashboard/partner-agencies', icon: 'agency-office' },
