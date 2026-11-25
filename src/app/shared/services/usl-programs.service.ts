@@ -1,6 +1,9 @@
-import { inject } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 
+@Injectable({
+  providedIn: 'root'
+})
 export class UslProgramsService {
   private readonly baseUrl = environment.supabaseUrl;
 
