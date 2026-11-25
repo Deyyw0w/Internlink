@@ -40,21 +40,14 @@
   >
     <article
       *ngFor="let item of items"
-      class="w-[320px] shrink-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg cursor-pointer"
+      class="w-[320px] shrink-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
     >
-      <div class="relative h-44">
-        <img
-          *ngIf="item.imageUrl"
-          [src]="item.imageUrl"
-          [alt]="item.title"
-          class="w-full h-full object-cover"
-        />
-        <div *ngIf="!item.imageUrl" class="relative h-44 bg-slate-200">
-          <div class="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-300"></div>
-          <div class="absolute inset-0 flex items-center justify-center">
-            <div class="rounded-full bg-white/70 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">
-              {{ item.imageLabel || 'Image Placeholder' }}
-            </div>
+      <div class="relative h-44 bg-slate-200">
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-300"></div>
+
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="rounded-full bg-white/70 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">
+            {{ item.imageLabel || 'Image Placeholder' }}
           </div>
         </div>
       </div>
@@ -70,9 +63,6 @@
 
         <div class="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
           {{ item.date }}
-        </div>
-        <div class="mt-2 text-[10px] text-amber-600 font-semibold uppercase tracking-wider" *ngIf="item.linkUrl">
-          Click to view on USL website
         </div>
       </div>
     </article>

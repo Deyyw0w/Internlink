@@ -92,35 +92,6 @@
     </article>
   </section>
 
-  <!-- Add News Form -->
-  <section *ngIf="!loading()" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div>
-        <h3 class="text-base font-bold text-slate-900 mb-1">Add News Item</h3>
-        <p class="text-xs text-slate-500">Copy program title from USL website and paste here.</p>
-      </div>
-    </div>
-    <div class="p-6 space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Title</label>
-          <input type="text" [(ngModel)]="newsTitle" placeholder="e.g. BS in Computer Science" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Link URL (optional)</label>
-          <input type="url" [(ngModel)]="newsLinkUrl" placeholder="https://usl.edu.ph/programs/" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]" />
-        </div>
-      </div>
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Excerpt / Description</label>
-        <textarea [(ngModel)]="newsExcerpt" rows="3" placeholder="Short description of the program…" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]"></textarea>
-      </div>
-      <button type="button" (click)="addNews()" class="px-5 py-2.5 rounded-lg bg-[#1E3A5F] text-white font-semibold text-sm hover:bg-blue-700 transition-colors">
-        Add to News
-      </button>
-    </div>
-  </section>
-
   <app-news-carousel [title]="'News & Updates'" [items]="newsItems()" />
 
 </div>

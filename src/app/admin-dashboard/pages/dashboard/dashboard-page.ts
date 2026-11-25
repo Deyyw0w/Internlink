@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
 import { NewsCarouselComponent, NewsItem } from '../../news-carousel/news-carousel.component';
-import { UslProgramsService } from '../../../shared/services/usl-programs.service';
 import { supabase } from '../../../../environments/supabase.config';
 
 type StatTone = 'blue' | 'orange' | 'green' | 'purple';
@@ -26,17 +25,12 @@ interface StatCard {
 })
 export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly uslPrograms = inject(UslProgramsService);
   private adminSubscription: any = null;
 
   statCards = signal<StatCard[]>([]);
   newsItems = signal<NewsItem[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
-
-  newsTitle = signal('');
-  newsExcerpt = signal('');
-  newsLinkUrl = signal('');
 
   trackByStat = (_: number, item: StatCard): string => item.label;
   statRoute(card: StatCard): string {
@@ -168,82 +162,30 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   }
 
   async loadNews(): Promise<void> {
-    try {
-      const { data: rows, error } = await supabase
-        .from('news')
-        .select('id, title, excerpt, image_label, image_url, link_url, published_at')
-        .eq('is_published', true)
-        .order('published_at', { ascending: false })
-        .limit(6);
+    // Static sample news items for demonstration.
+    // These are hardcoded for the research paper demo — no database needed.
+    const items: NewsItem[] = [
+      {
+        title: 'New Internship Programs Open',
+        excerpt: 'Applications are now open for IT Support, Electrical Engineering, and Software Development internships.',
+        date: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+        imageLabel: 'Announcement',
+      },
+      {
+        title: 'Document Submission Reminder',
+        excerpt: 'Please submit your medical certificate and endorsement letter before the deadline.',
+        date: new Date(Date.now() - 86400000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+        imageLabel: 'Reminder',
+      },
+      {
+        title: 'Partner Agency Visit',
+        excerpt: 'Representatives from partner companies will visit campus next week for student interviews.',
+        date: new Date(Date.now() - 172800000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+        imageLabel: 'Event',
+      },
+    ];
 
-      if (error) throw error;
-
-      const items: NewsItem[] = (rows || []).map((n: any) => ({
-        title: n.title,
-        excerpt: n.excerpt,
-        date: n.published_at
-          ? new Date(n.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-          : 'Recent',
-        imageLabel: n.image_label || 'News',
-        imageUrl: n.image_url,
-        linkUrl: n.link_url,
-      }));
-
-      this.newsItems.set(items);
-    } catch (err) {
-      console.error('[AdminDashboard] Error loading news:', err);
-      this.newsItems.set([]);
-    }
-  }
-
-  async importFromUsl(): Promise<void> {
-    try {
-      const result = await this.uslPrograms.importFromUsl();
-      await this.loadNews();
-      alert(`USL import complete: ${result.imported} new programs added, ${result.skipped} already existed.`);
-    } catch (err) {
-      console.error('[Dashboard] USL import failed:', err);
-      alert('Failed to import from USL. Make sure the Edge Function is deployed.');
-    }
-  }
-
-  async addNews(): Promise<void> {
-    const title = this.newsTitle().trim();
-    const excerpt = this.newsExcerpt().trim();
-    const linkUrl = this.newsLinkUrl().trim() || null;
-
-    if (!title) {
-      alert('Title is required.');
-      return;
-    }
-    if (!excerpt) {
-      alert('Excerpt is required.');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('news')
-        .insert({
-          title,
-          excerpt,
-          image_label: 'USL Program',
-          image_url: null,
-          link_url: linkUrl,
-          is_published: true,
-          published_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
-
-      this.newsTitle.set('');
-      this.newsExcerpt.set('');
-      this.newsLinkUrl.set('');
-      await this.loadNews();
-    } catch (err) {
-      console.error('[Dashboard] Add news failed:', err);
-      alert('Failed to add news. Please try again.');
-    }
+    this.newsItems.set(items);
   }
 
   /** Subscribe to real-time changes so stats refresh live when students apply or admins verify documents. */
