@@ -2,10 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 
 export interface NewsItem {
+  id?: string;
   title: string;
   excerpt: string;
   date: string;
   imageLabel?: string;
+  imageUrl?: string;
+  linkUrl?: string;
 }
 
 @Component({
