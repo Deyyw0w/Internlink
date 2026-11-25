@@ -33,6 +33,10 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   loading = signal(false);
   error = signal<string | null>(null);
 
+  newsTitle = signal('');
+  newsExcerpt = signal('');
+  newsLinkUrl = signal('');
+
   trackByStat = (_: number, item: StatCard): string => item.label;
   statRoute(card: StatCard): string {
     switch (card.label) {
@@ -199,6 +203,45 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('[Dashboard] USL import failed:', err);
       alert('Failed to import from USL. Make sure the Edge Function is deployed.');
+    }
+  }
+
+  async addNews(): Promise<void> {
+    const title = this.newsTitle().trim();
+    const excerpt = this.newsExcerpt().trim();
+    const linkUrl = this.newsLinkUrl().trim() || null;
+
+    if (!title) {
+      alert('Title is required.');
+      return;
+    }
+    if (!excerpt) {
+      alert('Excerpt is required.');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('news')
+        .insert({
+          title,
+          excerpt,
+          image_label: 'USL Program',
+          image_url: null,
+          link_url: linkUrl,
+          is_published: true,
+          published_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      this.newsTitle.set('');
+      this.newsExcerpt.set('');
+      this.newsLinkUrl.set('');
+      await this.loadNews();
+    } catch (err) {
+      console.error('[Dashboard] Add news failed:', err);
+      alert('Failed to add news. Please try again.');
     }
   }
 
