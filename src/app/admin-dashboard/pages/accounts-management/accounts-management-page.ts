@@ -174,7 +174,10 @@ export class AccountsManagementPageComponent implements OnInit {
       if (error) throw error;
 
       const programs = (data || []) as { name: string }[];
-      this.availableDegreePrograms.set(programs.map((p) => p.name).filter(Boolean));
+      // Exclude GLOCAL — it's an admin-only department, not for student accounts
+      this.availableDegreePrograms.set(
+        programs.map((p) => p.name).filter(Boolean).filter((name) => name !== 'GLOCAL')
+      );
     } catch (err) {
       console.error('[AccountsManagement] Failed to load degree programs:', err);
     }
