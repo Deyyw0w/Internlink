@@ -177,6 +177,12 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
     return this.reviewNotes()[req.id] || '';
   }
 
+  /** Handle per-requirement comment textarea change. */
+  onCommentChange(requirementId: string, event: Event): void {
+    const target = event.target as HTMLTextAreaElement;
+    this.reviewNotes.update((vals) => ({ ...vals, [requirementId]: target.value }));
+  }
+
   /** Requirements shown in the review modal — excludes rejected ones
    *  so a rejected file requirement drops out of admin view. */
   reviewRequirements = computed(() => {
@@ -335,7 +341,7 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
   /** Open the document review modal for a single student, listing all their requirements. */
   openReviewStudent(group: StudentDocumentGroup): void {
     this.reviewStudent.set(group);
-    this.reviewNotes.set('');
+    this.reviewNotes.set({});
     this.showDocumentModal.set(true);
     // Lock background scroll so the backdrop covers a static full screen.
     document.body.style.overflow = 'hidden';
@@ -346,7 +352,7 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
   closeReviewDocumentModal(): void {
     this.showDocumentModal.set(false);
     this.reviewStudent.set(null);
-    this.reviewNotes.set('');
+    this.reviewNotes.set({});
     document.body.style.overflow = '';
     this.cdr.markForCheck();
   }
