@@ -26,6 +26,7 @@ export class AdminNavbarComponent implements OnInit, OnDestroy {
     const profile = this.profileService.profile();
     return profile?.full_name ? this.profileService.computeInitials(profile.full_name) : 'SA';
   });
+  readonly adminStudentId = computed(() => this.profileService.profile()?.student_id ?? '');
 
   async ngOnInit(): Promise<void> {
     // Load profile for the current session user. Skip only when the cached
