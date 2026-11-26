@@ -584,16 +584,17 @@
             <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Host Company</label>
             <div class="relative rounded-xl border bg-slate-50 flex items-center"
                  [ngClass]="{ 'border-rose-500': addErrors()['hostCompany'] }">
-              <input
+              <select
                 id="addHostCompany"
-                type="text"
-                placeholder="e.g. Acme Corp"
                 [ngModel]="addForm().hostCompany"
-                (input)="onAddHostCompanyChange($event)"
+                (change)="onAddHostCompanyChange($event)"
                 name="addHostCompany"
                 required
-                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
-              />
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none appearance-none"
+              >
+                <option value="">Select a company</option>
+                <option *ngFor="let c of availableCompanies()" [value]="c.name">{{ c.name }}</option>
+              </select>
             </div>
             <p *ngIf="addErrors()['hostCompany']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['hostCompany'] }}</p>
           </div>

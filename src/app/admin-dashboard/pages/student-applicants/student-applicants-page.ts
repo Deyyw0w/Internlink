@@ -67,6 +67,9 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   degreePrograms = signal<string[]>([]);
   degreeToDeptMap = signal<Record<string, string>>({});
 
+  /** Available companies for the Host Company dropdown in Add Applicant modal. */
+  availableCompanies = signal<{ id: string; name: string }[]>([]);
+
   /** Applicants filtered by search + status + department + degree-program dropdowns. */
   filteredApplicants = computed(() => {
     const list = this.applicants();
@@ -616,6 +619,7 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     await this.loadApplicants();
     await this.loadDegreePrograms();
     await this.loadStudents();
+    await this.loadCompanies();
     this.subscribeToUpdates();
   }
 
@@ -659,6 +663,23 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('[StudentApplicants] Error loading degree programs:', err);
       // Leave the dropdown with just "All USLT Programs" if the fetch fails.
+    }
+  }
+
+  /** Load companies for the Host Company dropdown in Add Applicant modal. */
+  async loadCompanies(): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      this.availableCompanies.set((data || []).map((c: any) => ({ id: c.id, name: c.name })));
+    } catch (err) {
+      console.error('[StudentApplicants] Failed to load companies:', err);
     }
   }
 
