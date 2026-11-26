@@ -604,16 +604,17 @@
             <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Position / Role</label>
             <div class="relative rounded-xl border bg-slate-50 flex items-center"
                  [ngClass]="{ 'border-rose-500': addErrors()['positionRole'] }">
-              <input
+              <select
                 id="addPositionRole"
-                type="text"
-                placeholder="e.g. Software Engineering Intern"
                 [ngModel]="addForm().positionRole"
-                (input)="onAddPositionRoleChange($event)"
+                (change)="onAddPositionRoleChange($event)"
                 name="addPositionRole"
                 required
-                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none"
-              />
+                class="w-full pl-4 pr-4 py-3 text-sm text-slate-900 outline-none bg-transparent border-none appearance-none"
+              >
+                <option value="">Select position</option>
+                <option *ngFor="let p of availablePositions()" [value]="p.position_title">{{ p.position_title }}</option>
+              </select>
             </div>
             <p *ngIf="addErrors()['positionRole']" class="text-xs text-rose-600 mt-0.5">{{ addErrors()['positionRole'] }}</p>
           </div>

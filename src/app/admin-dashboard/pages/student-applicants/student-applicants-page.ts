@@ -70,6 +70,12 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   /** Available companies for the Host Company dropdown in Add Applicant modal. */
   availableCompanies = signal<{ id: string; name: string }[]>([]);
 
+  /** All internship postings for filtering by company. */
+  availablePostings = signal<{ id: string; position_title: string; company_id: string }[]>([]);
+
+  /** Available positions for the Position dropdown, filtered by selected company. */
+  availablePositions = signal<{ id: string; position_title: string; company_id: string }[]>([]);
+
   /** Applicants filtered by search + status + department + degree-program dropdowns. */
   filteredApplicants = computed(() => {
     const list = this.applicants();
@@ -486,18 +492,37 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     this.clearAddErrors();
   }
 
-  /** Handle host company input change in the add-applicant modal. */
+  /** Handle host company selection change in the add-applicant modal. */
   onAddHostCompanyChange(event: Event): void {
-    const target = event.target as HTMLInputElement;
+    const target = event.target as HTMLSelectElement;
     this.addForm.update((f) => ({ ...f, hostCompany: (target.value || '').trim() }));
+    this.clearAddErrors();
+    this.onAddHostCompanyChangeLogic(target.value || '');
+  }
+
+  /** Handle position role selection change in the add-applicant modal. */
+  onAddPositionRoleChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.addForm.update((f) => ({ ...f, positionRole: (target.value || '').trim() }));
     this.clearAddErrors();
   }
 
-  /** Handle position role input change in the add-applicant modal. */
-  onAddPositionRoleChange(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.addForm.update((f) => ({ ...f, positionRole: (target.value || '').trim() }));
-    this.clearAddErrors();
+  /** Filter available positions when company is selected. */
+  onAddHostCompanyChange(companyName: string): void {
+    const company = this.availableCompanies().find(c => c.name === companyName);
+    if (company) {
+      const positions = this.availablePostings().filter(p => p.company_id === company.id);
+      this.availablePositions.set(positions);
+      // Auto-select position if only one available
+      if (positions.length === 1) {
+        this.addForm.update(f => ({ ...f, positionRole: positions[0].position_title }));
+      } else {
+        this.addForm.update(f => ({ ...f, positionRole: '' }));
+      }
+    } else {
+      this.availablePositions.set([]);
+      this.addForm.update(f => ({ ...f, positionRole: '' }));
+    }
   }
 
   /** Handle status select change in the add-applicant modal. */
@@ -620,6 +645,7 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
     await this.loadDegreePrograms();
     await this.loadStudents();
     await this.loadCompanies();
+    await this.loadPostings();
     this.subscribeToUpdates();
   }
 
@@ -680,6 +706,44 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
       this.availableCompanies.set((data || []).map((c: any) => ({ id: c.id, name: c.name })));
     } catch (err) {
       console.error('[StudentApplicants] Failed to load companies:', err);
+    }
+  }
+
+  /** Load internship postings to populate Position dropdown filtered by selected company. */
+  async loadPostings(): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('internship_postings')
+        .select('id, position_title, company_id')
+        .eq('status', 'open');
+
+      if (error) throw error;
+
+      this.availablePostings.set((data || []).map((p: any) => ({
+        id: p.id,
+        position_title: p.position_title,
+        company_id: p.company_id,
+      })));
+    } catch (err) {
+      console.error('[StudentApplicants] Failed to load postings:', err);
+    }
+  }
+
+  /** Filter positions by selected company. */
+  onCompanyChange(companyName: string): void {
+    const company = this.availableCompanies().find(c => c.name === companyName);
+    if (company) {
+      const positions = this.availablePostings().filter(p => p.company_id === company.id);
+      this.availablePositions.set(positions);
+      // Auto-select first position if only one available
+      if (positions.length === 1) {
+        this.addForm.update(f => ({ ...f, positionRole: positions[0].position_title }));
+      } else {
+        this.addForm.update(f => ({ ...f, positionRole: '' }));
+      }
+    } else {
+      this.availablePositions.set([]);
+      this.addForm.update(f => ({ ...f, positionRole: '' }));
     }
   }
 
