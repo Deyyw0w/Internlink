@@ -22,13 +22,10 @@ export class FirstLoginChangePasswordPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  email = '';
   userRole: 'student' | 'admin' | '' = '';
-  currentPassword = '';
   newPassword = '';
   confirmPassword = '';
 
-  showCurrentPassword = signal(false);
   showNewPassword = signal(false);
   showConfirmPassword = signal(false);
   isChangingPassword = signal(false);
@@ -57,7 +54,6 @@ export class FirstLoginChangePasswordPageComponent implements OnInit {
         void this.router.navigate(['/login']);
         return;
       }
-      this.email = user.email ?? '';
       this.userRole = '';
 
       const { data: profile, error } = await supabase
@@ -86,10 +82,6 @@ export class FirstLoginChangePasswordPageComponent implements OnInit {
     }
   }
 
-  toggleCurrentPasswordVisibility(): void {
-    this.showCurrentPassword.update(v => !v);
-  }
-
   toggleNewPasswordVisibility(): void {
     this.showNewPassword.update(v => !v);
   }
@@ -105,60 +97,43 @@ export class FirstLoginChangePasswordPageComponent implements OnInit {
   async onSubmit(): Promise<void> {
     this.errorMessage.set('');
 
-    const req = this.passwordRequirements();
+    const pw = this.newPassword?.trim() || '';
+    const confirm = this.confirmPassword?.trim() || '';
 
-    if (!this.currentPassword?.trim()) {
-      this.errorMessage.set('Please enter your current password.');
-      return;
-    }
-    if (!this.newPassword?.trim()) {
+    if (!pw) {
       this.errorMessage.set('Please enter a new password.');
       return;
     }
-    if (!req.length) {
+    if (pw.length < 6) {
       this.errorMessage.set('Password must be at least 6 characters.');
       return;
     }
-    if (!req.number) {
+    if (!/\d/.test(pw)) {
       this.errorMessage.set('Password must contain at least 1 number.');
       return;
     }
-    if (!req.special) {
+    if (!/[^a-zA-Z0-9]/.test(pw)) {
       this.errorMessage.set('Password must contain at least 1 special character.');
       return;
     }
-    if (!req.uppercase) {
+    if (!/[A-Z]/.test(pw)) {
       this.errorMessage.set('Password must contain at least 1 uppercase letter.');
       return;
     }
-    if (!this.confirmPassword?.trim()) {
+    if (!confirm) {
       this.errorMessage.set('Please confirm your new password.');
       return;
     }
-    if (this.newPassword !== this.confirmPassword) {
+    if (pw !== confirm) {
       this.errorMessage.set('Passwords do not match.');
-      return;
-    }
-    if (this.newPassword === this.currentPassword) {
-      this.errorMessage.set('New password must be different from your current password.');
       return;
     }
 
     this.isChangingPassword.set(true);
 
     try {
-      // Step 1: Verify current password by signing in again
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: this.email,
-        password: this.currentPassword,
-      });
-      if (signInError) {
-        this.errorMessage.set('Current password is incorrect.');
-        return;
-      }
-
-      // Step 2: Update the password
-      const { error: updateError } = await supabase.auth.updateUser({ password: this.newPassword });
+      // Step 1: Update the password directly (user is already authenticated)
+      const { error: updateError } = await supabase.auth.updateUser({ password: pw });
       if (updateError) {
         this.errorMessage.set(updateError.message || 'Failed to update password.');
         return;
