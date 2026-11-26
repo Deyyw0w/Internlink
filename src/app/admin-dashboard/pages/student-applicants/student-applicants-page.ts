@@ -495,20 +495,11 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
   /** Handle host company selection change in the add-applicant modal. */
   onAddHostCompanyChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
-    this.addForm.update((f) => ({ ...f, hostCompany: (target.value || '').trim() }));
+    const companyName = (target.value || '').trim();
+    this.addForm.update((f) => ({ ...f, hostCompany: companyName }));
     this.clearAddErrors();
-    this.onAddHostCompanyChangeLogic(target.value || '');
-  }
 
-  /** Handle position role selection change in the add-applicant modal. */
-  onAddPositionRoleChange(event: Event): void {
-    const target = event.target as HTMLSelectElement;
-    this.addForm.update((f) => ({ ...f, positionRole: (target.value || '').trim() }));
-    this.clearAddErrors();
-  }
-
-  /** Filter available positions when company is selected. */
-  onAddHostCompanyChange(companyName: string): void {
+    // Filter available positions by selected company
     const company = this.availableCompanies().find(c => c.name === companyName);
     if (company) {
       const positions = this.availablePostings().filter(p => p.company_id === company.id);
@@ -523,6 +514,13 @@ export class StudentApplicantsPageComponent implements OnInit, OnDestroy {
       this.availablePositions.set([]);
       this.addForm.update(f => ({ ...f, positionRole: '' }));
     }
+  }
+
+  /** Handle position role selection change in the add-applicant modal. */
+  onAddPositionRoleChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.addForm.update((f) => ({ ...f, positionRole: (target.value || '').trim() }));
+    this.clearAddErrors();
   }
 
   /** Handle status select change in the add-applicant modal. */
