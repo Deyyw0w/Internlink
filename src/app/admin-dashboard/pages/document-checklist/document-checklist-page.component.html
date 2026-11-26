@@ -264,23 +264,23 @@
                   Reject
                 </button>
               </div>
+
+              <!-- Per-requirement comment -->
+              <div class="flex-col mt-2 w-full sm:flex-0">
+                <textarea
+                  [(ngModel)]="reviewNotes()[req.id]"
+                  (input)="reviewNotes.update(v => ({ ...v, [req.id]: (target as HTMLTextAreaElement).value }))"
+                  rows="2"
+                  class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors"
+                  placeholder="Add comment for this requirement…"
+                ></textarea>
+              </div>
             </div>
           </div>
         </div>
 
         <div *ngIf="!(reviewStudent()?.requirements?.length)" class="px-6 py-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-sm text-slate-400 italic">
           No requirements for this student.
-        </div>
-
-        <!-- Admin comment -->
-        <div class="space-y-2">
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Admin Comment (optional)</label>
-          <textarea
-            [(ngModel)]="reviewNotes"
-            rows="3"
-            class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 focus:ring-1 focus:ring-blue-400 focus:border-transparent outline-none transition-colors"
-            placeholder="Add notes about this decision…"
-          ></textarea>
         </div>
 
         <!-- Action Buttons -->

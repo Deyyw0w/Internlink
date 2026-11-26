@@ -169,8 +169,13 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
   // Document review modal state (per student)
   showDocumentModal = signal(false);
   reviewStudent = signal<StudentDocumentGroup | null>(null);
-  reviewNotes = signal('');
+  reviewNotes = signal<Record<string, string>>({});
   isSavingDocument = signal(false);
+
+  /** Get the comment for a specific requirement. */
+  getCommentForRequirement(req: DocumentItem): string {
+    return this.reviewNotes()[req.id] || '';
+  }
 
   /** Requirements shown in the review modal — excludes rejected ones
    *  so a rejected file requirement drops out of admin view. */
@@ -409,7 +414,7 @@ export class DocumentChecklistPageComponent implements OnInit, OnDestroy {
 
       const updateValues: any = {
         status: decision,
-        admin_notes: this.reviewNotes() || null,
+        admin_notes: this.getCommentForRequirement(req) || null,
         updated_at: new Date().toISOString(),
       };
 
